@@ -740,7 +740,14 @@ async def betteracro(ctx):
 
             # don't let people vote twice
             if m.author.name in votes.keys():
+                await ctx.send("You can't vote twice. Dumbass.")
                 continue
+
+            # don't let people vote for themselves
+            if m.author.name == vote_map[int(m.content)][0]:
+                await ctx.send("You can't vote for yourself. Dumbass.")
+                continue
+                
             # save votes and delete the vote
             votes[m.author.name] = m.content
             await m.delete()
