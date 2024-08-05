@@ -1,0 +1,21 @@
+# Private Discord Bot Key
+secret
+
+# Assets [no including assets so people can review them all]
+# alleyman/
+# cooldown/
+# hugs/
+# images/
+# likes/
+# mods/
+# tongue/
+# __pycache__/
+
+# JSONs
+*.json
+
+# Mac
+.DS_STORE
+
+# Venv
+bot-env/
