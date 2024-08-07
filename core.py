@@ -267,6 +267,7 @@ async def cmdinteract(ctx):
     embed.add_field(name = ".begone", value = "Keep the thots off you")
     embed.add_field(name = ".confused", value = "When people are talking nonsense")
     embed.add_field(name = ".uncivil", value = "Call out uncivilized behavior")
+    embed.add_field(name = ".report", value = "Report a bug in Nancy")
 
     await ctx.send("Here are all the interaction commands", embed=embed)
 
@@ -292,6 +293,8 @@ async def cmdquestion(ctx):
     embed.add_field(name=".qrules", value="Rules for questions and answers")
     embed.add_field(name=".qlist", value="List all questions the bot can answer")
     embed.add_field(name=".qshuffle", value="Shuffle question options")
+    embed.add_field(name=".qstats", value="See your lifetime game stats")
+    embed.add_field(name=".qleader", value="See wins leaderboard")
     await ctx.send("Here are all Question game commands", embed=embed)
 
 ####################
@@ -350,7 +353,7 @@ async def speak(ctx):
 @commands.check(cooldown)
 async def ravage(ctx):
 
-    if ctx.channel.id != 779873459756335104:
+    if ctx.channel.id not in [779873459756335104, 1269074244814377041]:
         await ctx.send("It's way too public here! (go to #bot-and-spam)")
         return
 
@@ -621,6 +624,23 @@ async def ew(ctx):
 
     await send_image_embed(ctx, "./images/", "ew.gif", "", reply)
 
+@bot.command(description='Report a bug to bot creators')
+@commands.check(cooldown)
+async def report(ctx):
+
+    # delete and respond to og message if a reply
+    reply = False
+    if ctx.message.reference:
+        await ctx.message.delete()
+        reply = True
+
+    # get bot dev objects
+    claim = await bot.fetch_user(CLAIMANT_USER_ID)
+    canch = await bot.fetch_user(CANCHEZ_USER_ID)
+
+    await ctx.send("Moshi moshi? A bug?! Ok I'll connect you.")
+    await send_image_embed(ctx, "./images/", "moshi-moshi.png", f"Paging {canch.mention} and {claim.mention}", reply)
+
 #####################
 ### Game Commands ###
 #####################
@@ -632,8 +652,8 @@ async def betteracro(ctx):
     # it might make sense to do other smart things like make letters appear
     # in line with their language frequency or similar
 
-    if ctx.channel.id != 779873459756335104:
-        await ctx.send("Please play games only in #bot-and-spam")
+    if ctx.channel.id not in [779873459756335104, 1269074244814377041]:
+        await ctx.send("It's way too public here! (go to #bot-and-spam)")
         return
 
     # all acros are 3-5 letters
@@ -747,7 +767,7 @@ async def betteracro(ctx):
             if m.author.name == vote_map[int(m.content)][0]:
                 await ctx.send("You can't vote for yourself. Dumbass.")
                 continue
-                
+
             # save votes and delete the vote
             votes[m.author.name] = m.content
             await m.delete()
@@ -776,8 +796,8 @@ async def betteracro(ctx):
 async def alleyman(ctx):
     # Like Nadeko's hangman, but with new categories
     
-    if ctx.channel.id != 779873459756335104:
-        await ctx.send("Please play games only in #bot-and-spam")
+    if ctx.channel.id not in [779873459756335104, 1269074244814377041]:
+        await ctx.send("It's way too public here! (go to #bot-and-spam)")
         return
 
     # block DM playing
@@ -922,8 +942,8 @@ async def qrules(ctx):
 async def qstart(ctx, max_questions=DEFAULT_QUESTIONS, host='human'):
     """Start Questions game if not started already by creating and saving json"""
 
-    if ctx.channel.id != 779873459756335104:
-        await ctx.send("Please play games only in #bot-and-spam")
+    if ctx.channel.id not in [779873459756335104, 1269074244814377041]:
+        await ctx.send("It's way too public here! (go to #bot-and-spam)")
         return
 
     # block DM playing
@@ -990,15 +1010,18 @@ async def qstop(ctx, game_over=False, guess=False):
         await ctx.send("Questions game is not running!")
         return
     
-    if ctx.message.author.id == question_game["host"] or await can_do(ctx) or game_over or guess:
-        
+    first_asker = question_game['questions'][0]['author_id']
+    if ctx.message.author.id in (question_game["host"], first_asker) or await can_do(ctx) or game_over or guess:
+
+        # handle Nancy/Bot games
         answer = None
         nancy_game = False
         if question_game['host'] == bot.user.id:
             nancy_game = True
             answer = question_game['answer']
 
-        # send embed and clear the game
+        # send embed and clear the game (and save a copy for stats)
+        q_game = question_game
         embed = create_question_game_embed(question_game, game_over=game_over, is_cancelled=True, guess=guess)
         await ctx.send(embed=embed)
         question_game = {}
@@ -1006,8 +1029,16 @@ async def qstop(ctx, game_over=False, guess=False):
         save_question_game(ctx, question_game)
 
         if guess:
+
+            # process stats for this game
+            calc_qstats(ctx, q_game, guessed=True)
+
             await ctx.send("You guessed correctly. Nice!")
         elif game_over:
+
+            # process stats for this game
+            calc_qstats(ctx, q_game, guessed=False)
+
             await ctx.send("Your guess was wrong, game over!")
 
             # share the answer if it's a Nancy hosted game
@@ -1082,6 +1113,7 @@ async def q(ctx, q_option=None):
         "question": new_question,
         "answer": answer,
         "author": ctx.message.author.display_name,
+        "author_id" : ctx.message.author.id,
         "guess": False
     }
     question_game["questions"].append(question_dict)
@@ -1257,17 +1289,31 @@ async def guess(ctx):
     
     # answer guesses in a Nancy hosted game
     if question_game['host'] == bot.user.id:
+
+        # end the game if answer is correct
         if question_game['answer'].lower() in new_question.lower():
 
-            # end the game if answer is correct
+            question_dict = {
+                "question": new_question,
+                "answer": True,
+                "author": ctx.message.author.display_name,
+                "author_id" : ctx.message.author.id,
+                "guess": True
+            }
+            question_game["questions"].append(question_dict)
+            save_question_game(ctx, question_game)
+
+            
             await qstop(ctx, guess=True)
             return
-            
+        
+        # keep going if incorrect
         else:
             question_dict = {
                 "question": new_question,
                 "answer": False,
                 "author": ctx.message.author.display_name,
+                "author_id" : ctx.message.author.id,
                 "guess": True
             }
             question_game["questions"].append(question_dict)
@@ -1278,21 +1324,75 @@ async def guess(ctx):
                 await qstop(ctx, game_over=True)
                 return
     else:
-
         question_dict = {
             "question": new_question,
             "answer": "",
             "author": ctx.message.author.display_name,
+            "author_id" : ctx.message.author.id,
             "guess": True
         }
         question_game["questions"].append(question_dict)
         save_question_game(ctx, question_game)
 
-    embed = create_question_game_embed(question_game)
+    embed = create_question_game_embed(question_game, guess=True)
+    await ctx.send(embed=embed)
+
+@bot.command(description="View your questions game stats")
+async def qstats(ctx):
+
+    # load all stats
+    q_dict = load_pkl(ctx, "qstats")
+
+    # if user not seen before add them
+    if ctx.message.author.id not in q_dict.keys():
+        q_dict[p_id] = create_qstats()
+        
+        # save new user
+        save_pkl(ctx, q_dict, "qstats")
+
+    user_stats = q_dict[ctx.message.author.id]
+
+    embed = discord.Embed(title=f"{ctx.message.author.display_name}'s 20q Stats!")
+    embed.add_field(name="Bot Games Played", value=f"{user_stats['bot_participate']}", inline=False)
+    embed.add_field(name="Bot Games Won", value=f"{user_stats['bot_win']}", inline=False)
+    embed.add_field(name="Bot Game Win Percentage", value=f"{user_stats['bot_win_percent']:.0%}", inline=False)
+    embed.add_field(name="Human Games Played", value=f"{user_stats['human_participate']}", inline=False)
+    embed.add_field(name="Human Games Won", value=f"{user_stats['human_win']}", inline=False)
+    embed.add_field(name="Human Game Win Percentage", value=f"{user_stats['human_win_percent']:.0%}", inline=False)
+    embed.add_field(name="Hosted Games", value=f"{user_stats['host_participate']}", inline=False)
+    embed.add_field(name="Hosted Games Won", value=f"{user_stats['host_win']}", inline=False)
+    embed.add_field(name="Hosted Games Win Percentage", value=f"{user_stats['host_win_percent']:.0%}", inline=False)
+    embed.add_field(name="Total Wins", value=f"{user_stats['all_wins']}", inline=False)
+    embed.add_field(name="Correct Answers Guessed", value=f"{user_stats['guess_wins']}", inline=False)
+
+    await ctx.send(embed=embed)
+
+@bot.command(description="View your questions game stats")
+async def qleader(ctx):
+    # load all stats
+    q_dict = load_pkl(ctx, "qstats")
+
+    # sort by all wins
+    sort_list = [(k, v['all_wins']) for k, v in sorted(q_dict.items(), key=lambda item: item[1]['all_wins'], reverse=True)]
+    top_ten = sort_list[:10]
+
+    embed = discord.Embed(title="20 Questions All Wins Leaderboard")
+    for i, data in enumerate(top_ten):
+        user = await bot.fetch_user(data[0])
+        embed.add_field(name=f"{i+1}) {user.display_name}", value=f"{data[1]} wins", inline=False)
+
     await ctx.send(embed=embed)
 
 ### ERRORS ###
 # Let people know why they can't do things
+
+@like.error
+@unlike.error
+async def like_error(ctx, error):
+    if isinstance(error, commands.errors.CheckFailure):
+        await ctx.send("You can only use this command if Nancy likes you")
+    else:
+        print(error)
 
 @speak.error
 @unmod.error
@@ -1436,22 +1536,28 @@ def create_question_game_embed(game, game_over=False, is_cancelled=False, guess=
 
     embed = discord.Embed(title="Questions game", description=f"{game['host_name']}'s {game['max_questions']} Questions game")
 
+    nq = len(game["questions"])
     for index, question_dict in enumerate(game["questions"]):
         name = f"{index + 1}. {question_dict['question']} ({question_dict['author']})"
         answer = question_dict["answer"]
 
         if answer == True:
-            answer = f"Yes <a:nova_nod_hyper:1269380092740632668>"
+            answer = "Yes <a:nova_nod_hyper:1269380092740632668>"
         elif answer == False:
-            answer = f"No <a:novanope:1251738053639405730>"
+            if guess and index+1 == nq and not is_cancelled:
+                answer = "<a:who:1270446936457085059> (No)"
+            else:
+                answer = "No <a:novanope:1251738053639405730>"
         elif answer.lower() in YES_ANSWERS:
             answer = f"{answer} <a:nova_nod_hyper:1269380092740632668>"
         elif answer.lower() in NO_ANSWERS:
             answer = f"{answer} <a:novanope:1251738053639405730>"
+        elif answer.lower() == 'unknown':
+            answer = "Unknown <:novaidk:1270853670010880021>"
 
         embed.add_field(name=name, value=answer, inline=False)
 
-    if guess:
+    if guess and is_cancelled:
         embed.set_footer(text=f"Game is over! {question_dict['author']} won!")
     elif (len(game["questions"]) == game["max_questions"]) and game['questions'][-1]['answer'] != "":
         embed.set_footer(text="Out of questions, time to guess!")
@@ -1505,6 +1611,103 @@ def load_20q_characters():
             data[row_id] = data_dict
 
     return data, characters
+
+def save_pkl(ctx, d, folder):
+    with open(f'./{folder}/{ctx.guild.id}.pkl', 'wb') as f:
+        pickle.dump(d, f)
+
+def load_pkl(ctx, folder):
+    d_loc = Path(f'./{folder}/{ctx.guild.id}.pkl')
+    if d_loc.is_file():
+        with open(d_loc, 'rb') as f:
+            d = pickle.load(f)
+    else:
+        # empty dict default
+        d = {}
+
+        save_pkl(ctx, d, folder)
+    return d
+
+def create_qstats():
+    # dict of dicts, first key is user_id, then schema below
+    d = {
+        'bot_participate': 0,
+        'bot_win': 0,
+        'bot_win_percent': 0.0,
+        'host_participate' : 0,
+        'host_win' : 0,
+        'host_win_percent' : 0.0,
+        'human_participate' : 0,
+        'human_win' : 0,
+        'human_win_percent' : 0.0,
+        'all_wins' : 0,
+        'guess_wins' : 0
+    }
+
+    return d
+
+def calc_qstats(ctx, question_game, guessed):
+    
+    # load all stats
+    q_dict = load_pkl(ctx, "qstats")
+
+    # extract players
+    all_players = [q['author_id'] for q in question_game['questions']]
+    players = list(set(all_players))
+    
+    for p_id in players:
+
+        # if user not seen before add them
+        if p_id not in q_dict.keys():
+            q_dict[p_id] = create_qstats()
+
+        # handle bot games
+        if question_game['host'] == bot.user.id:
+            
+            # calc bot stats
+            q_dict[p_id]['bot_participate'] += 1
+            if guessed:
+                q_dict[p_id]['bot_win'] += 1
+                q_dict[p_id]['all_wins'] += 1
+
+                # give credit if they guessed the answer
+                if p_id == question_game['questions'][-1]['author_id']:
+                    q_dict[p_id]['guess_wins'] += 1
+
+            q_dict[p_id]['bot_win_percent'] = q_dict[p_id]['bot_win'] / q_dict[p_id]['bot_participate']
+        
+        else:
+
+            # calc player stats
+            q_dict[p_id]['human_participate'] += 1
+            if guessed:
+                q_dict[p_id]['human_win'] += 1
+                q_dict[p_id]['all_wins'] += 1
+
+                # give credit if they guessed the answer
+                if p_id == question_game['questions'][-1]['author_id']:
+                    q_dict[p_id]['guess_wins'] += 1
+
+            q_dict[p_id]['human_win_percent'] = q_dict[p_id]['human_win'] / q_dict[p_id]['human_participate']
+
+    # handle stats for the game host
+    if question_game['host'] != bot.user.id:
+        
+        # find host id
+        p_id = question_game['host']
+        
+        # if user not seen before add them
+        if p_id not in q_dict.keys():
+            q_dict[p_id] = create_qstats()
+
+        q_dict[p_id]['host_participate'] += 1
+        if not guessed:
+            q_dict[p_id]['host_win'] += 1
+            q_dict[p_id]['all_wins'] += 1
+        q_dict[p_id]['host_win_percent'] = q_dict[p_id]['host_win'] / q_dict[p_id]['host_participate']
+
+    # save stat changes
+    save_pkl(ctx, q_dict, "qstats")
 
 # private bot key, don't share
 with open("./secret", "r") as f:

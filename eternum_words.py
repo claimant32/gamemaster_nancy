@@ -74,7 +74,7 @@ eternum_words = [
 	'Professor Abbot',
 	'Boggles',
 	'Increarbus Severum',
-	'Maximus',
+	'Maximo',
 	'Western Roman Empire',
 	'Rotunda',
 	'Jasticus',
