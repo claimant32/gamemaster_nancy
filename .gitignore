@@ -9,7 +9,7 @@ secret
 # likes/
 # mods/
 # tongue/
-# __pycache__/
+ __pycache__/
 
 # JSONs
 *.json
