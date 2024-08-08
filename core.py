@@ -1345,7 +1345,7 @@ async def qstats(ctx):
 
     # if user not seen before add them
     if ctx.message.author.id not in q_dict.keys():
-        q_dict[p_id] = create_qstats()
+        q_dict[ctx.message.author.id] = create_qstats()
         
         # save new user
         save_pkl(ctx, q_dict, "qstats")
