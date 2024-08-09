@@ -294,7 +294,7 @@ async def cmdquestion(ctx):
     embed.add_field(name=".qlist", value="List all questions the bot can answer")
     embed.add_field(name=".qshuffle", value="Shuffle question options")
     embed.add_field(name=".qstats", value="See your lifetime game stats")
-    embed.add_field(name=".qleader", value="See wins leaderboard")
+    embed.add_field(name=".qleader", value="See wins leaderboard (categories: all, bot, human, host)")
     await ctx.send("Here are all Question game commands", embed=embed)
 
 ####################
@@ -1368,15 +1368,33 @@ async def qstats(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(description="View your questions game stats")
-async def qleader(ctx):
+async def qleader(ctx, stat='all'):
     # load all stats
     q_dict = load_pkl(ctx, "qstats")
 
-    # sort by all wins
-    sort_list = [(k, v['all_wins']) for k, v in sorted(q_dict.items(), key=lambda item: item[1]['all_wins'], reverse=True)]
+    # select the correct leaderboard category
+    lname = None
+    if stat.lower() == 'all':
+        stat = 'all_wins'
+        lname = 'All Wins'
+    elif stat.lower() == 'human':
+        stat = 'human_win'
+        lname = 'Human Wins'
+    elif stat.lower() == 'bot':
+        stat = 'bot_win'
+        lname = 'Bot Wins'
+    elif stat.lower() == 'host':
+        stat = 'host_win'
+        lname = 'Host Wins'
+    else:
+        await ctx.send(f"{stat} is not a valid leaderboard category! (try: all, human, bot or host)")
+        return
+
+    # sort by chosen category
+    sort_list = [(k, v[stat]) for k, v in sorted(q_dict.items(), key=lambda item: item[1][stat], reverse=True)]
     top_ten = sort_list[:10]
 
-    embed = discord.Embed(title="20 Questions All Wins Leaderboard")
+    embed = discord.Embed(title=f"20 Questions {lname} Leaderboard")
     for i, data in enumerate(top_ten):
         user = await bot.fetch_user(data[0])
         embed.add_field(name=f"{i+1}) {user.display_name}", value=f"{data[1]} wins", inline=False)
