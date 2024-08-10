@@ -56,6 +56,8 @@ CARI_USER_ID = 543504165779931157
 PHIL_USER_ID = 549052137481437195
 POND_USER_ID = 862875766832496671
 
+DEF_SECONDS = 30
+
 @bot.event
 async def on_ready():
     # just prints to the console once we login
@@ -67,7 +69,7 @@ async def on_ready():
 
 # These checks are used to control access to certain commands. General self explanatory by name
 
-async def cooldown(ctx):
+async def cooldown(ctx, seconds=DEF_SECONDS):
     # a check to see if a user is abusing a command
     cd_dict = load_cd(ctx)
 
@@ -80,7 +82,7 @@ async def cooldown(ctx):
         last_cmd_t = cd_dict[ctx.message.author.id]['last_time']
 
         # same command 30 secs apart
-        if (last_cmd == ctx.command.name) and (datetime.now(tz=pytz.UTC) - last_cmd_t).total_seconds() < 30:
+        if (last_cmd == ctx.command.name) and (datetime.now(tz=pytz.UTC) - last_cmd_t).total_seconds() < seconds:
             return False
 
     else:
@@ -113,6 +115,29 @@ async def nancy_likes_you(ctx):
         return True
     else:
         return False
+
+@bot.event
+async def on_message(message):
+
+    # load context
+    ctx = await bot.get_context(message)
+    m = message.content.lower()
+    if ctx.guild == None:
+        return
+
+    # check for timeouts
+    timeouts = load_pkl(ctx, 'timeout')
+    if ctx.message.author.id in timeouts.keys() and m.startswith('.'):
+        if datetime.now(tz=pytz.UTC) > timeouts[ctx.message.author.id]:
+            await ctx.send(f"{ctx.message.author.display_name} is free from timeout!")
+            del timeouts[ctx.message.author.id]
+            save_pkl(ctx, timeouts, 'timeout')
+        else:
+            await ctx.send("You are in still in timeout, sorry!")
+            return
+
+    # process bot_messages (if not in timeout)
+    await bot.process_commands(message)
 
 # always listening
 @bot.listen('on_message')
@@ -245,6 +270,7 @@ async def cmdmod(ctx):
     embed.add_field(name=".addmod", value="Add a new Nancy moderator")
     embed.add_field(name=".unmod", value="Remove a Nancy moderator")
     embed.add_field(name=".speak", value="Speak in a channel as Nancy")
+    embed.add_field(name=".touchgrass", value="Timeout users from using Nancy")
 
     await ctx.send("Here are all the moderator commands", embed=embed)
 
@@ -344,6 +370,22 @@ async def speak(ctx):
         await channel.send(msg)
     else:
         await ctx.send("Please specify a channel")
+
+@bot.command(description="Timeout a user from using Nancy")
+@commands.check(can_do)
+async def touchgrass(ctx, user, minutes=10):
+    timeouts = load_pkl(ctx, 'timeout')
+    if len(ctx.message.mentions) == 0:
+        await ctx.send('Who do you want to timeout?')
+    elif len(ctx.message.mentions) == 1:
+        if ctx.message.mentions[0].id in timeouts.keys():
+            ctx.send(f"{ctx.message.mentions[0].name} is already in timeout!")
+        else:
+            timeouts[ctx.message.mentions[0].id] = datetime.now(tz=pytz.UTC) + timedelta(minutes=minutes)
+            await ctx.send(f"{ctx.message.mentions[0].name} is in timeout for {minutes} minutes!")
+            save_pkl(ctx, timeouts, 'timeout')
+    else:
+        await ctx.send('I can only timeout one person at a time!')
 
 ############################
 ### Interaction Commands ###
@@ -939,6 +981,7 @@ async def qrules(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(description="Start Questions game")
+@commands.cooldown(5, 600, type=commands.BucketType.user)
 async def qstart(ctx, max_questions=DEFAULT_QUESTIONS, host='human'):
     """Start Questions game if not started already by creating and saving json"""
 
@@ -1433,7 +1476,7 @@ async def permission_error(ctx, error):
 @ravage.error
 async def cooldown_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
-        await ctx.send("There is a 30 second cooldown on this command, please wait.")
+        await ctx.send(f"There is a {DEF_SECONDS} second cooldown on this command, please wait.")
     else:
         print(error)
 
@@ -1441,6 +1484,8 @@ async def cooldown_error(ctx, error):
 async def question_game_error(ctx, error):
     if isinstance(error, commands.BadArgument):
         await ctx.send(f"Please specify a number between {MIN_QUESTIONS} and {MAX_QUESTIONS}")
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f"You can only start a game 5 times in 10 minutes, please wait.")
     else:
         print(error)
 
