@@ -127,7 +127,7 @@ async def on_message(message):
 
     # check for timeouts
     timeouts = load_pkl(ctx, 'timeout')
-    if ctx.message.author.id in timeouts.keys() and m.startswith('.'):
+    if ctx.message.author.id in timeouts.keys() and m[1:].split(' ')[0] in [c.name for c in bot.commands]:
         if datetime.now(tz=pytz.UTC) > timeouts[ctx.message.author.id]:
             await ctx.send(f"{ctx.message.author.display_name} is free from timeout!")
             del timeouts[ctx.message.author.id]
@@ -379,7 +379,7 @@ async def touchgrass(ctx, user, minutes=10):
         await ctx.send('Who do you want to timeout?')
     elif len(ctx.message.mentions) == 1:
         if ctx.message.mentions[0].id in timeouts.keys():
-            ctx.send(f"{ctx.message.mentions[0].name} is already in timeout!")
+            await ctx.send(f"{ctx.message.mentions[0].name} is already in timeout!")
         else:
             timeouts[ctx.message.mentions[0].id] = datetime.now(tz=pytz.UTC) + timedelta(minutes=minutes)
             await ctx.send(f"{ctx.message.mentions[0].name} is in timeout for {minutes} minutes!")
@@ -981,7 +981,7 @@ async def qrules(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(description="Start Questions game")
-@commands.cooldown(5, 600, type=commands.BucketType.user)
+@commands.cooldown(5, 1200, type=commands.BucketType.user)
 async def qstart(ctx, max_questions=DEFAULT_QUESTIONS, host='human'):
     """Start Questions game if not started already by creating and saving json"""
 
@@ -1485,7 +1485,7 @@ async def question_game_error(ctx, error):
     if isinstance(error, commands.BadArgument):
         await ctx.send(f"Please specify a number between {MIN_QUESTIONS} and {MAX_QUESTIONS}")
     if isinstance(error, commands.CommandOnCooldown):
-        await ctx.send(f"You can only start a game 5 times in 10 minutes, please wait.")
+        await ctx.send(f"You can only start a game 5 times in 20 minutes, please wait.")
     else:
         print(error)
 
