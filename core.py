@@ -282,6 +282,7 @@ async def cmdinteract(ctx):
     embed.add_field(name = ".pats", value = "Who has been good lately? Reward them")
     embed.add_field(name = ".like", value = "Ask Nancy to like someone, can only be done by people she already likes")
     embed.add_field(name = ".unlike", value = "Ask Nancy to not like someone, can only be done by people she already likes")
+    embed.add_field(name = ".bday", value = "Wish a friend Happy Birthday!")
     embed.add_field(name = ".tongue", value = "Random render from Eternum with a tongue involved")
     embed.add_field(name = ".suss", value = "Call out suspicious behavior")
     embed.add_field(name = ".hugs", value = "Hug your friends!")
@@ -526,6 +527,19 @@ async def unlike(ctx):
 
     else:
         await ctx.send('I can only unlike one person at a time')
+
+@bot.command(description='Wish your friends Happy Birthday')
+@commands.check(cooldown)
+async def bday(ctx):
+    # Nova gives you a birthday card
+
+    # need to mention exactly one person
+    if len(ctx.message.mentions) == 0:
+        await ctx.send("Who's birthday is it?")
+    elif len(ctx.message.mentions) == 1:
+        await send_image_embed(ctx, "./images/", "birthday.png", text=f"Happy Birthday {ctx.message.mentions[0].mention}, I made this for you!")
+    else:
+        await ctx.send('Only one birthday wish at a time!')
 
 @bot.command(description='Random tongue render')
 @commands.check(cooldown)
