@@ -1,4 +1,5 @@
 ### General Imports ###
+import os
 import re
 import sys
 import pytz
@@ -530,14 +531,26 @@ async def unlike(ctx):
 
 @bot.command(description='Wish your friends Happy Birthday')
 @commands.check(cooldown)
-async def bday(ctx):
-    # Nova gives you a birthday card
+async def bday(ctx, user, girl=None):
+    # One of the Eternum girls wishes you a happy birthday
+    ops = os.listdir('./birthdays')
+    if not girl:
+        choice = random.choice(ops)
+    else:
+        choice = [g for g in ops if girl.lower() in g]
+
+        # make sure they picked a valid girl
+        if len(choice) == 0:
+            await ctx.send(f"{girl} is not a valid birthday option! Try again.")
+            return
+        else:
+            choice = choice[0]
 
     # need to mention exactly one person
     if len(ctx.message.mentions) == 0:
-        await ctx.send("Who's birthday is it?")
+        await ctx.send("Who's birthday is it? Tag them in this command")
     elif len(ctx.message.mentions) == 1:
-        await send_image_embed(ctx, "./images/", "birthday.png", text=f"Happy Birthday {ctx.message.mentions[0].mention}, I made this for you!")
+        await send_image_embed(ctx, "./birthdays/", choice, text=f"Happy Birthday {ctx.message.mentions[0].display_name}! I got you a little something!")
     else:
         await ctx.send('Only one birthday wish at a time!')
 
@@ -1067,8 +1080,15 @@ async def qstop(ctx, game_over=False, guess=False):
         await ctx.send("Questions game is not running!")
         return
     
-    first_asker = question_game['questions'][0]['author_id']
-    if ctx.message.author.id in (question_game["host"], first_asker) or await can_do(ctx) or game_over or guess:
+    # catch games with no questions or find the first asker
+    empty_game = False
+    first_asker = None
+    if len(question_game['questions']) == 0:
+        empty_game = True
+    else:
+        first_asker = question_game['questions'][0]['author_id']
+    
+    if ctx.message.author.id in (question_game["host"], first_asker) or await can_do(ctx) or game_over or guess or empty_game:
 
         # handle Nancy/Bot games
         answer = None
