@@ -11,11 +11,15 @@ secret
 # tongue/
  __pycache__/
 
-# JSONs
+# File types
 *.json
+*.pyc
 
 # Mac
 .DS_STORE
 
 # Venv
 bot-env/
+
+# Secret projects
+hunt.py

@@ -19,6 +19,7 @@ import discord
 from discord.ext import commands
 
 ### Local Imports ###
+from hunt import *
 from vidya_words import vidya_words
 from eternum_words import eternum_words
 from powermanagement import prevent_standby
@@ -62,6 +63,7 @@ DEF_SECONDS = 30
 @bot.event
 async def on_ready():
     # just prints to the console once we login
+    test()
     print(f'We have logged in as {bot.user}')
 
 ##############
