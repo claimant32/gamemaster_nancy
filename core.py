@@ -19,7 +19,6 @@ import discord
 from discord.ext import commands
 
 ### Local Imports ###
-from hunt import *
 from vidya_words import vidya_words
 from eternum_words import eternum_words
 from powermanagement import prevent_standby
@@ -27,6 +26,7 @@ from powermanagement import prevent_standby
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
+intents.members = True
 
 bot = commands.Bot(command_prefix='.', description="Gamemaster bot for Caribdis server", intents=intents)
 
@@ -41,7 +41,7 @@ prevent_standby()
 
 #################
 ### Constants ###
-################3
+#################
 
 DEFAULT_QUESTIONS = 15 # Default amount of questions
 MIN_QUESTIONS = 1 # Min amount of questions
@@ -63,8 +63,10 @@ DEF_SECONDS = 30
 @bot.event
 async def on_ready():
     # just prints to the console once we login
-    test()
     print(f'We have logged in as {bot.user}')
+
+    # load Cogs
+    await bot.load_extension("hunt")
 
 ##############
 ### Checks ###
@@ -390,6 +392,12 @@ async def touchgrass(ctx, user, minutes=10):
             save_pkl(ctx, timeouts, 'timeout')
     else:
         await ctx.send('I can only timeout one person at a time!')
+
+@bot.command(description="Reload an extension")
+@commands.check(can_do)
+async def reload(ctx, ext):
+    await bot.reload_extension(f"{ext}")
+    await ctx.send(f"{ext} reloaded")
 
 ############################
 ### Interaction Commands ###
@@ -1482,6 +1490,10 @@ async def qleader(ctx, stat='all'):
 
 ### ERRORS ###
 # Let people know why they can't do things
+
+@reload.error
+async def general_error(ctx, error):
+    print(error)
 
 @like.error
 @unlike.error

@@ -49,4 +49,3 @@ dependencies:
       - idna==3.7
       - multidict==6.0.5
       - yarl==1.9.4
-prefix: /Users/grromrell/anaconda3/envs/discord_bot
