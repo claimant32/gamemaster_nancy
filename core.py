@@ -67,6 +67,7 @@ async def on_ready():
 
     # load Cogs
     await bot.load_extension("hunt")
+    await bot.load_extension("aotd")
 
 ##############
 ### Checks ###
@@ -206,7 +207,7 @@ async def always_on(message):
         return
     """
 
-    if "shut" in m and "up" in m and "nancy" in m:
+    if "shut up nancy" in m:
         if await nancy_likes_you(ctx):
             await unlike(ctx)
             await message.channel.send(f"That's it no more nintendo for you mister, {message.author.mention}")
@@ -248,6 +249,7 @@ async def cmd(ctx, cmdtype=None):
         embed.add_field(name=".cmd", value="List all categories of commands, you are using it now!")
         embed.add_field(name=".cmdmod", value="All mod only commands")
         embed.add_field(name=".cmdinteract", value="All commands for interacting with other people")
+        embed.add_field(name=".cmdaotd", value="Ass of the Day Commands!")
         embed.add_field(name=".cmdgames", value="All commands for games you can play")
         embed.add_field(name=".cmdquestion", value="Commands for the 20 questions game")
         embed.set_footer(text="You can also use .cmd <subcommand> like '.cmd games'")
@@ -259,6 +261,9 @@ async def cmd(ctx, cmdtype=None):
         return
     elif cmdtype == 'interact':
         await cmdinteract(ctx)
+        return
+    elif cmdtype == 'aotd':
+        await cmdaotd(ctx)
         return
     elif cmdtype == 'games':
         await cmdgames(ctx)
@@ -303,6 +308,14 @@ async def cmdinteract(ctx):
 
     await ctx.send("Here are all the interaction commands", embed=embed)
 
+@bot.command(description='List all aotd commands')
+async def cmdaotd(ctx):
+    embed = discord.Embed()
+    embed.add_field(name = ".aotd", value = "Ass of the Day roulette!")
+    embed.add_field(name = ".aotd_collection", value = "See which asses you have collected (and find secrets!)")
+   
+    await ctx.send("Here are all the Ass of the Day commands", embed=embed)
+    
 @bot.command(description='List all game commands')
 async def cmdgames(ctx):
     embed = discord.Embed()
@@ -392,6 +405,12 @@ async def touchgrass(ctx, user, minutes=10):
             save_pkl(ctx, timeouts, 'timeout')
     else:
         await ctx.send('I can only timeout one person at a time!')
+
+@bot.command(description="Load a new extension")
+@commands.check(can_do)
+async def load(ctx, ext):
+    await bot.load_extension(f"{ext}")
+    await ctx.send(f"{ext} loaded")
 
 @bot.command(description="Reload an extension")
 @commands.check(can_do)
@@ -541,7 +560,7 @@ async def unlike(ctx):
 
 @bot.command(description='Wish your friends Happy Birthday')
 @commands.check(cooldown)
-async def bday(ctx, user, girl=None):
+async def bday(ctx, user=None, girl=None):
     # One of the Eternum girls wishes you a happy birthday
     ops = os.listdir('./birthdays')
     if not girl:
@@ -557,7 +576,7 @@ async def bday(ctx, user, girl=None):
             choice = choice[0]
 
     # need to mention exactly one person
-    if len(ctx.message.mentions) == 0:
+    if user == None:
         await ctx.send("Who's birthday is it? Tag them in this command")
     elif len(ctx.message.mentions) == 1:
         await send_image_embed(ctx, "./birthdays/", choice, text=f"Happy Birthday {ctx.message.mentions[0].display_name}! I got you a little something!")
