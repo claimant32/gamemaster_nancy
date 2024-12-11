@@ -168,7 +168,8 @@ class Spinner(discord.ui.View):
                     teams += teams_ids[r.id]
 
             # Make 3rd in a row a guarantee for team roles
-            if (l2[0] == l2[1]) and l2[0] in teams:
+            if (l2[0] == l2[1]) and l2[0] in teams and not aotd_dict[a_id]['eter_gold'][l2[0]]:
+
                 bypass = True
                 girl = l2[0].capitalize()
 
@@ -201,7 +202,7 @@ class Spinner(discord.ui.View):
                     teams += teams_ids[r.id]
 
             # Make 3rd in a row a guarantee for team roles
-            if (l2[0] == l2[1]) and l2[0] in teams:
+            if (l2[0] == l2[1]) and l2[0] in teams and not not aotd_dict[a_id]['eter_gold'][l2[0]]:
                 bypass = True
                 girl = l2[0].capitalize()
 
