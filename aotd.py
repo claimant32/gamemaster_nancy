@@ -10,6 +10,10 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
+### Local Imports ###
+from constants import *
+from utils import can_do
+
 eter = ['alex', 'annie', 'dalia', 'luna', 'nancy', 'nova', 'penny']
 secret = ['calypso', 'eva', 'maat']
 eter_gold = ['alex', 'annie', 'dalia', 'luna', 'nancy', 'nova', 'penny']
@@ -25,10 +29,15 @@ teams_ids = {
     921059129039155270 : 'annie'
 }
 
+ass_role = {
+    CNC_GUILD : 1300135081238724750,
+    CARI_GUILD : 1320740212250513421
+}
+
 class AOTD(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        print("cog loaded")
+        print("aotd loaded")
     
     @commands.command()
     @commands.cooldown(1, 82800, commands.BucketType.user)
@@ -72,6 +81,26 @@ class AOTD(commands.Cog):
                 embed.add_field(name="Gold" + girl.capitalize(), value="Collected!" if status else "Missing!")
 
         await ctx.send("Here is the status of your ass collection!", embed=embed)
+    
+    @commands.command()
+    @commands.check(can_do)
+    async def add_aotd_role(self, ctx):
+        if len(ctx.message.mentions) == 0:
+            await ctx.send('Who do you want grant the role to?')
+        elif len(ctx.message.mentions) == 1:
+            await add_ass_role(ctx, ctx.message.mentions[0].id)
+        else:
+            await ctx.send('I can only add one role at a time')
+
+    @commands.command()
+    @commands.check(can_do)
+    async def remove_aotd_role(self, ctx):
+        if len(ctx.message.mentions) == 0:
+            await ctx.send('Who do you want remove the role from?')
+        elif len(ctx.message.mentions) == 1:
+            await remove_ass_role(ctx, ctx.message.mentions[0].id)
+        else:
+            await ctx.send('I can only remove one role at a time')
 
     @aotd.error
     async def cooldown_error(self, ctx, error):
@@ -120,6 +149,40 @@ def load_aotd(guild_id):
         aotd_dict = {}
         save_aotd(guild_id, aotd_dict)
     return aotd_dict
+
+async def add_ass_role(ctx, user_id):
+    # get role and user
+    guild = ctx.guild
+    member = await guild.fetch_member(user_id)
+    new_role = guild.get_role(ass_role[guild.id])
+
+    # skip if already added
+    if new_role in member.roles:
+        ctx.send("User already has the role!")
+        return
+
+    # add role
+    await member.add_roles(new_role)
+
+    # send message to channel
+    await ctx.send("Ass Collector Role Added!")
+
+async def remove_ass_role(ctx, user_id):
+    # get role and user
+    guild = ctx.guild
+    member = await guild.fetch_member(user_id)
+    new_role = guild.get_role(ass_role[guild.id])
+
+    # skip if not already added
+    if new_role not in member.roles:
+        ctx.send("User doesn't have the role!")
+        return
+
+    # add role
+    await member.remove_roles(new_role)
+
+    # send message to channel
+    await ctx.send("Ass Collector Role Removed!")
 
 class Spinner(discord.ui.View):
 
@@ -189,7 +252,7 @@ class Spinner(discord.ui.View):
 
         else:
             # 1/20 chance to get sg
-            if random.random() <= .05 or self.pwd=="sidegirl":
+            if random.random() <= .05: # or self.pwd=="sidegirl":
                 sg = True
                 loc = './aotd/secret'
             else:
@@ -202,7 +265,7 @@ class Spinner(discord.ui.View):
                     teams += teams_ids[r.id]
 
             # Make 3rd in a row a guarantee for team roles
-            if (l2[0] == l2[1]) and l2[0] in teams and not not aotd_dict[a_id]['eter_gold'][l2[0]]:
+            if (l2[0] == l2[1]) and l2[0] in teams and not aotd_dict[a_id]['eter_gold'][l2[0]]:
                 bypass = True
                 girl = l2[0].capitalize()
 
@@ -260,7 +323,9 @@ class Spinner(discord.ui.View):
                 m += "Collect all the Main Girl asses to unlock more secrets!\n"
         elif all(aotd_dict[a_id]['oialt'].values()) and not oialt_done:
             m += "You have collected all OiaLT LI asses! Congrats!\n"
-            m += "Try and collect all the golden asses to complete the set!\n"
+            m += "You have completed the main part of the game, congrats on winning the Ass Collector role!"
+            m += "Try and collect the Golden Asses (get 3 in a row of the Eternum LIs) if you want to overachieve!\n"
+            await add_ass_role(self.ctx, a_id)
 
         # check if they have found rare outcomes
         if gold:
