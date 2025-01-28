@@ -54,7 +54,7 @@ class AOTD(commands.Cog):
 
         await ctx.send(embed=embed, file=img, view=Spinner(ctx, pwd))
 
-    @commands.command()
+    @commands.command(aliases=["aotd_collections", "acollection", "acollections"])
     async def aotd_collection(self, ctx):
         aotd_dict = load_aotd(ctx.guild.id)
 
@@ -101,6 +101,46 @@ class AOTD(commands.Cog):
             await remove_ass_role(ctx, ctx.message.mentions[0].id)
         else:
             await ctx.send('I can only remove one role at a time')
+
+    @commands.command()
+    @commands.check(can_do)
+    async def grant_ass(self, ctx, user, girl, gold=False):
+        if len(ctx.message.mentions) == 0:
+            await ctx.send('What user are you granting the ass to?')
+        
+        elif len(ctx.message.mentions) == 1:
+            
+            # load claimed asses
+            a_id = ctx.message.mentions[0].id
+            aotd_dict = load_aotd(CARI_GUILD)
+            if a_id not in aotd_dict.keys():
+                aotd_dict[a_id] = {}
+                aotd_dict[a_id]['eter'] = {g:False for g in eter}
+                aotd_dict[a_id]['secret'] = {g:False for g in secret}
+                aotd_dict[a_id]['eter_gold'] = {g:False for g in eter_gold}
+                aotd_dict[a_id]['oialt'] = {g:False for g in oialt}
+                aotd_dict[a_id]['last_two'] = [None, None]
+
+            # save results
+            if gold and girl.lower() in eter:
+                aotd_dict[a_id]['eter_gold'][girl.lower()] = True
+            elif girl.lower() in eter:
+                aotd_dict[a_id]['eter'][girl.lower()] = True
+            elif girl.lower() in secret:
+                aotd_dict[a_id]['secret'][girl.lower()] = True
+            elif girl.lower() in oialt:
+                aotd_dict[a_id]['oialt'][girl.lower()] = True
+            else:
+                await ctx.send("Not a valid ass to grant")
+                return
+
+            # don't include granted asses in history
+            # aotd_dict[a_id]['last_two'] = [girl.lower(), l2[0]]
+            save_aotd(CARI_GUILD, aotd_dict)
+            await ctx.send(f"Girl: {girl}, Gold: {gold} ass granted")
+        
+        else:
+            await ctx.send('Only one ass grant at a time')
 
     @aotd.error
     async def cooldown_error(self, ctx, error):
@@ -213,13 +253,14 @@ class Spinner(discord.ui.View):
         oialt_done = all(aotd_dict[a_id]['oialt'].values())
         l2 = aotd_dict[a_id]['last_two']
 
+        odds = random.random()
         if li_done and sg_done:
             # pool of all asses (5% SG, 75% eter, 20% oialt)
-            if random.random() <= .05: # or self.pwd=="sidegirl":
+            if odds <= .05: # or self.pwd=="sidegirl":
                 sg = True
                 loc = './aotd/secret'
             else:
-                if random.random() <= .20: # or self.pwd=="oialt":
+                if odds <= .20: # or self.pwd=="oialt":
                     loc = './aotd/oialt'
                 else:
                     loc = './aotd/eter'
@@ -228,7 +269,7 @@ class Spinner(discord.ui.View):
             teams = []
             for r in self.ctx.author.roles:
                 if r.id in teams_ids.keys():
-                    teams += teams_ids[r.id]
+                    teams += [teams_ids[r.id]]
 
             # Make 3rd in a row a guarantee for team roles
             if (l2[0] == l2[1]) and l2[0] in teams and not aotd_dict[a_id]['eter_gold'][l2[0]]:
@@ -252,7 +293,7 @@ class Spinner(discord.ui.View):
 
         else:
             # 1/20 chance to get sg
-            if random.random() <= .05: # or self.pwd=="sidegirl":
+            if odds <= .05: # or self.pwd=="sidegirl":
                 sg = True
                 loc = './aotd/secret'
             else:
@@ -262,7 +303,7 @@ class Spinner(discord.ui.View):
             teams = []
             for r in self.ctx.author.roles:
                 if r.id in teams_ids.keys():
-                    teams += teams_ids[r.id]
+                    teams += [teams_ids[r.id]]
 
             # Make 3rd in a row a guarantee for team roles
             if (l2[0] == l2[1]) and l2[0] in teams and not aotd_dict[a_id]['eter_gold'][l2[0]]:

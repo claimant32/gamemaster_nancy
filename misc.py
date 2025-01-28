@@ -80,6 +80,7 @@ class MISC(commands.Cog):
         embed.add_field(name = ".tongue", value = "Random render from Eternum with a tongue involved")
         embed.add_field(name = ".suss", value = "Call out suspicious behavior")
         embed.add_field(name = ".hugs", value = "Hug your friends!")
+        embed.add_field(name = ".kisses", value = "Kiss your friends!")
         embed.add_field(name = ".curse", value = "Curse evil comments")
         embed.add_field(name = ".ew", value = "Express disgust")
         embed.add_field(name = ".yes", value = "Agree with someone")
@@ -393,6 +394,26 @@ class MISC(commands.Cog):
         p = Path('./hugs')
 
         ops = list(p.glob('*.png'))
+        s = random.choice(ops)
+
+        # set the image
+        img = discord.File(s, filename="scene.png")
+        embed = discord.Embed()
+        embed.set_image(url="attachment://scene.png")
+
+        await ctx.send(f"Come here!", file=img, embed=embed)
+
+    @commands.command(description='Random kiss render')
+    @commands.cooldown(1, 30, commands.BucketType.user)
+    async def kisses(self, ctx):
+
+        # pick a random png
+        p = Path('./kisses')
+
+        if ctx.author.id == WINGY_USER_ID:
+            ops = list(p.glob('*penny*'))
+        else:
+            ops = list(p.glob('*.png'))
         s = random.choice(ops)
 
         # set the image

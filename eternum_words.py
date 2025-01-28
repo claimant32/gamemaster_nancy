@@ -129,7 +129,7 @@ eternum_words = [
 	'Lysa Iliescu',
 	'Tissle',
 	'Duke and Burpee',
-	'Fangred',
+	'Fangrend',
 	'Aspen',
 	'Lamborghini',
 	'Tortuga',

@@ -44,6 +44,7 @@ class QS(commands.Cog):
 
     @commands.command(description="Start Questions game")
     @commands.check(spam_channel)
+    @commands.cooldown(10, 1200, type=commands.BucketType.user)
     async def qstart(self, ctx, max_questions=DEFAULT_QUESTIONS, host='human'):
         """Start Questions game if not started already by creating and saving json"""
 
@@ -513,6 +514,8 @@ class QS(commands.Cog):
     async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.BadArgument):
             await ctx.send(f"Please specify a number between {MIN_QUESTIONS} and {MAX_QUESTIONS}")
+        elif isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"This command is on cooldown, try again in {round(error.retry_after)}s")
         else:
             print(error)
 
