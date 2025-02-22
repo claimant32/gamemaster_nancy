@@ -37,11 +37,9 @@ async def on_ready():
     print(f'We have logged in as {bot.user}')
 
     # load Cogs
-    await bot.load_extension("hunt")
-    await bot.load_extension("aotd")
-    await bot.load_extension("qs")
-    await bot.load_extension("games")
-    await bot.load_extension("misc")
+    cogs = [f.split('.')[0] for f in os.listdir('./cogs') if os.path.isfile(os.path.join('./cogs', f))]
+    for cog in cogs:
+        await bot.load_extension(f"cogs.{cog}")
 
 ########################
 ### Always Listening ###

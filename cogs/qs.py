@@ -10,7 +10,7 @@ from discord.ext import commands
 ### Local Imports ###
 from constants import *
 from utils import spam_channel
-from utils import write_json, load_pkl, save_pkl, can_do
+from utils import write_json, load_pkl, save_pkl, can_do, send_image_embed
 
 #################
 ### Constants ###
@@ -142,7 +142,11 @@ class QS(commands.Cog):
                 # process stats for this game
                 calc_qstats(ctx, q_game, guessed=True)
 
+                # send image embed if a bot game
                 await ctx.send("You guessed correctly. Nice!")
+                if nancy_game:
+                    await send_image_embed(ctx, './q_characters/', f"{answer.lower()}.jpg", text=f"The correct answer was: {answer}")
+
             elif game_over:
 
                 # process stats for this game
@@ -152,7 +156,8 @@ class QS(commands.Cog):
 
                 # share the answer if it's a Nancy hosted game
                 if nancy_game:
-                    await ctx.send(f"The correct answer was: {answer}")
+                    await send_image_embed(ctx, './q_characters/', f"{answer.lower()}.jpg", text=f"The correct answer was: {answer}")
+            
             else:    
                 await ctx.send("The Questions game is stopped!")
             

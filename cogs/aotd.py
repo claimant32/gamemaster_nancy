@@ -16,7 +16,7 @@ from utils import can_do
 
 eter = ['alex', 'annie', 'dalia', 'luna', 'nancy', 'nova', 'penny']
 secret = ['calypso', 'eva', 'maat']
-eter_gold = ['alex', 'annie', 'dalia', 'luna', 'nancy', 'nova', 'penny']
+eter_gold = ['alex', 'annie', 'dalia', 'luna', 'nancy', 'nova', 'penny', 'calypso']
 oialt = ['judie', 'lauren', 'jasmine', 'iris', 'aiko', 'carla', 'rebecca']
 
 teams_ids = {
@@ -40,7 +40,7 @@ class AOTD(commands.Cog):
         print("aotd loaded")
     
     @commands.command()
-    @commands.cooldown(1, 82800, commands.BucketType.user)
+    @commands.cooldown(1, 72000, commands.BucketType.user)
     async def aotd(self, ctx, pwd=None):
 
         if ctx.channel.id not in [779873459756335104, 1269074244814377041]:
@@ -54,7 +54,7 @@ class AOTD(commands.Cog):
 
         await ctx.send(embed=embed, file=img, view=Spinner(ctx, pwd))
 
-    @commands.command(aliases=["aotd_collections", "acollection", "acollections"])
+    @commands.command(aliases=["aotd_collections", "acollection", "acollections", "asscollection"])
     async def aotd_collection(self, ctx):
         aotd_dict = load_aotd(ctx.guild.id)
 
@@ -142,6 +142,12 @@ class AOTD(commands.Cog):
         else:
             await ctx.send('Only one ass grant at a time')
 
+    @commands.command()
+    @commands.check(can_do)
+    async def gib_harem(self, ctx):
+        await grant_harem(ctx, bot=self.bot)
+        return
+
     @aotd.error
     async def cooldown_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
@@ -189,6 +195,25 @@ def load_aotd(guild_id):
         aotd_dict = {}
         save_aotd(guild_id, aotd_dict)
     return aotd_dict
+
+async def grant_harem(ctx, bot):
+    # get cari guild
+    guild = bot.get_guild(CARI_GUILD)
+    # get self
+    member = await guild.fetch_member(1269059788139135038)
+    # get harem role
+    new_role = guild.get_role(924021576645627924)
+
+    # skip if already added
+    if new_role in member.roles:
+        ctx.send("User already has the role!")
+        return
+
+    # add role
+    await member.add_roles(new_role)
+
+    # send message to channel
+    await ctx.send("Successfully added harem role")
 
 async def add_ass_role(ctx, user_id):
     # get role and user
@@ -246,8 +271,15 @@ class Spinner(discord.ui.View):
             aotd_dict[a_id]['oialt'] = {g:False for g in oialt}
             aotd_dict[a_id]['last_two'] = [None, None]
 
+        ### add keys for asses added later ###
+
+        # gold Calypso
+        if 'calypso' not in aotd_dict[a_id]['eter_gold'].keys():
+            aotd_dict[a_id]['eter_gold']['calypso'] = False
+
         sg = False
         gold = False
+        cursed = False
         li_done = all(aotd_dict[a_id]['eter'].values())
         sg_done = all(aotd_dict[a_id]['secret'].values())
         oialt_done = all(aotd_dict[a_id]['oialt'].values())
@@ -256,14 +288,16 @@ class Spinner(discord.ui.View):
         odds = random.random()
         if li_done and sg_done:
             # pool of all asses (5% SG, 75% eter, 20% oialt)
-            if odds <= .05: # or self.pwd=="sidegirl":
+            if odds <= .001:
+                cursed = True
+                loc = './aotd/cursed'
+            elif odds <= .05: # or self.pwd=="sidegirl":
                 sg = True
                 loc = './aotd/secret'
+            elif odds <= .20: # or self.pwd=="oialt":
+                loc = './aotd/oialt'
             else:
-                if odds <= .20: # or self.pwd=="oialt":
-                    loc = './aotd/oialt'
-                else:
-                    loc = './aotd/eter'
+                loc = './aotd/eter'
 
             # get teams roles
             teams = []
@@ -287,13 +321,16 @@ class Spinner(discord.ui.View):
                 girl = s.name.split('.')[0].capitalize()
 
             # handle golden
-            if ('eter' in loc and girl.lower() == l2[0] and girl.lower() == l2[1]) or bypass:
+            if (girl.lower() in eter_gold and girl.lower() == l2[0] and girl.lower() == l2[1]) or bypass:
                 gold = True
                 s = f'./aotd/gold/{girl.lower()}.png'
 
         else:
             # 1/20 chance to get sg
-            if odds <= .05: # or self.pwd=="sidegirl":
+            if odds <= .001:
+                cursed = True
+                loc = './aotd/cursed'
+            elif odds <= .05: # or self.pwd=="sidegirl":
                 sg = True
                 loc = './aotd/secret'
             else:
@@ -320,7 +357,7 @@ class Spinner(discord.ui.View):
                 girl = s.name.split('.')[0].capitalize()
 
             # handle golden
-            if ('eter' in loc and girl.lower() == l2[0] and girl.lower() == l2[1]) or bypass:
+            if (girl.lower() in eter_gold and girl.lower() == l2[0] and girl.lower() == l2[1]) or bypass:
                 gold = True
                 s = f'./aotd/gold/{girl.lower()}.png'           
 
@@ -333,9 +370,11 @@ class Spinner(discord.ui.View):
             aotd_dict[a_id]['secret'][girl.lower()] = True
         elif girl.lower() in oialt:
             aotd_dict[a_id]['oialt'][girl.lower()] = True
-        aotd_dict[a_id]['last_two'] = [girl.lower(), l2[0]]
+        
 
-        save_aotd(interaction.guild_id, aotd_dict)
+        if not cursed:
+            aotd_dict[a_id]['last_two'] = [girl.lower(), l2[0]]
+            save_aotd(interaction.guild_id, aotd_dict)
 
         # disable the button
         button.disabled = True
@@ -373,5 +412,7 @@ class Spinner(discord.ui.View):
             m += "You have found a mythical golden ass! You are rewarded for getting the same girl 3 times in a row!"
         elif sg:
             m += "You have found a rare secret Side Girl ass!"
+        elif cursed:
+            m += "The Ghost of WendO has visited you and cursed you with a glimpse of the fattest ass in Eternum... Orion Richards"
 
         await interaction.edit_original_response(content=m, embed=embed, attachments=[img], view=self)
