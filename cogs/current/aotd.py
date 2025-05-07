@@ -55,32 +55,60 @@ class AOTD(commands.Cog):
         await ctx.send(embed=embed, file=img, view=Spinner(ctx, pwd))
 
     @commands.command(aliases=["aotd_collections", "acollection", "acollections", "asscollection"])
-    async def aotd_collection(self, ctx):
-        aotd_dict = load_aotd(ctx.guild.id)
+    async def aotd_collection(self, ctx, guild_id=None, user_id=None):
+        # Handle Guild, ignore if anybody else
+        if guild_id and ctx.message.author.id in [CLAIMANT_USER_ID, CANCHEZ_USER_ID]:
+            guild = int(guild_id)
+        else:
+            guild = ctx.guild.id
+        aotd_dict = load_aotd(guild)
 
-        if ctx.message.author.id not in aotd_dict.keys():
-            await ctx.send("You haven't collected any asses yet! Try .aotd first!")
+        # Handle User, ignore if anybody else
+        if user_id and ctx.message.author.id in [CLAIMANT_USER_ID, CANCHEZ_USER_ID]:
+            user = int(user_id)
+            # Get User's display name, use ID as fallback
+            user_data = self.bot.get_user(user)
+            if user_data:
+                username = user_data.display_name
+            else:
+                username = user
+            # Get Guild's display name, use ID as fallback
+            guild_data = self.bot.get_guild(guild)
+            if guild_data:
+                guild_name = guild_data.name
+            else:
+                guild_name = guild
+
+            m = f"Here is the status of ass collection of {username} from {guild_name}!"
+            empty_m = f"{username} haven't collected any asses yet in {guild_name}!"
+        else:
+            user = ctx.message.author.id
+            m = "Here is the status of your ass collection!"
+            empty_m = "You haven't collected any asses yet! Try .aotd first!"
+
+        if user not in aotd_dict.keys():
+            await ctx.send(empty_m)
             return
 
-        coll = aotd_dict[ctx.message.author.id]
+        coll = aotd_dict[user]
 
         embed = discord.Embed()
         for girl, status in coll['eter'].items():
-            embed.add_field(name=girl.capitalize(), value="Collected!" if status else "Missing!")
+            embed.add_field(name=girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
         if any(coll['secret'].values()):
             for girl, status in coll['secret'].items():
-                embed.add_field(name=girl.capitalize(), value="Collected!" if status else "Missing!")
+                embed.add_field(name=girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
         if any(coll['oialt'].values()):
             for girl, status in coll['oialt'].items():
-                embed.add_field(name=girl.capitalize(), value="Collected!" if status else "Missing!")
+                embed.add_field(name=girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
         if any(coll['eter_gold'].values()):
             for girl, status in coll['eter_gold'].items():
-                embed.add_field(name="Gold" + girl.capitalize(), value="Collected!" if status else "Missing!")
+                embed.add_field(name="Gold" + girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
-        await ctx.send("Here is the status of your ass collection!", embed=embed)
+        await ctx.send(m, embed=embed)
     
     @commands.command()
     @commands.check(can_do)

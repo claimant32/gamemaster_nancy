@@ -55,32 +55,60 @@ class AOTD(commands.Cog):
         await ctx.send(embed=embed, file=img, view=Spinner(ctx, pwd))
 
     @commands.command(aliases=["aotd_collections", "acollection", "acollections", "asscollection"])
-    async def aotd_collection(self, ctx):
-        aotd_dict = load_aotd(ctx.guild.id)
+    async def aotd_collection(self, ctx, guild_id=None, user_id=None):
+        # Handle Guild, ignore if anybody else
+        if guild_id and ctx.message.author.id in [CLAIMANT_USER_ID, CANCHEZ_USER_ID]:
+            guild = int(guild_id)
+        else:
+            guild = ctx.guild.id
+        aotd_dict = load_aotd(guild)
 
-        if ctx.message.author.id not in aotd_dict.keys():
-            await ctx.send("You haven't collected any asses yet! Try .aotd first!")
+        # Handle User, ignore if anybody else
+        if user_id and ctx.message.author.id in [CLAIMANT_USER_ID, CANCHEZ_USER_ID]:
+            user = int(user_id)
+            # Get User's display name, use ID as fallback
+            user_data = self.bot.get_user(user)
+            if user_data:
+                username = user_data.display_name
+            else:
+                username = user
+            # Get Guild's display name, use ID as fallback
+            guild_data = self.bot.get_guild(guild)
+            if guild_data:
+                guild_name = guild_data.name
+            else:
+                guild_name = guild
+
+            m = f"Here is the status of ass collection of {username} from {guild_name}!"
+            empty_m = f"{username} haven't collected any asses yet in {guild_name}!"
+        else:
+            user = ctx.message.author.id
+            m = "Here is the status of your ass collection!"
+            empty_m = "You haven't collected any asses yet! Try .aotd first!"
+
+        if user not in aotd_dict.keys():
+            await ctx.send(empty_m)
             return
 
-        coll = aotd_dict[ctx.message.author.id]
+        coll = aotd_dict[user]
 
         embed = discord.Embed()
         for girl, status in coll['eter'].items():
-            embed.add_field(name=girl.capitalize(), value="Collected!" if status else "Missing!")
+            embed.add_field(name=girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
         if any(coll['secret'].values()):
             for girl, status in coll['secret'].items():
-                embed.add_field(name=girl.capitalize(), value="Collected!" if status else "Missing!")
+                embed.add_field(name=girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
         if any(coll['oialt'].values()):
             for girl, status in coll['oialt'].items():
-                embed.add_field(name=girl.capitalize(), value="Collected!" if status else "Missing!")
+                embed.add_field(name=girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
         if any(coll['eter_gold'].values()):
             for girl, status in coll['eter_gold'].items():
-                embed.add_field(name="Gold" + girl.capitalize(), value="Collected!" if status else "Missing!")
+                embed.add_field(name="Gold" + girl.capitalize(), value="✅ Collected!" if status else "❌ Missing!")
 
-        await ctx.send("Here is the status of your ass collection!", embed=embed)
+        await ctx.send(m, embed=embed)
     
     @commands.command()
     @commands.check(can_do)
@@ -230,7 +258,7 @@ async def add_ass_role(ctx, user_id):
     await member.add_roles(new_role)
 
     # send message to channel
-    await ctx.send("Ass Collector Role Added!")
+    await ctx.send("Butt Collector Role Added!")
 
 async def remove_ass_role(ctx, user_id):
     # get role and user
@@ -278,6 +306,7 @@ class Spinner(discord.ui.View):
             aotd_dict[a_id]['eter_gold']['calypso'] = False
 
         sg = False
+        new = False
         gold = False
         cursed = False
         li_done = all(aotd_dict[a_id]['eter'].values())
@@ -288,7 +317,7 @@ class Spinner(discord.ui.View):
         odds = random.random()
         if li_done and sg_done:
             # pool of all asses (5% SG, 75% eter, 20% oialt)
-            if odds <= .001:
+            if odds <= .0001:
                 cursed = True
                 loc = './aotd/cursed'
             elif odds <= .05: # or self.pwd=="sidegirl":
@@ -298,36 +327,9 @@ class Spinner(discord.ui.View):
                 loc = './aotd/oialt'
             else:
                 loc = './aotd/eter'
-
-            # get teams roles
-            teams = []
-            for r in self.ctx.author.roles:
-                if r.id in teams_ids.keys():
-                    teams += [teams_ids[r.id]]
-
-            # Make 3rd in a row a guarantee for team roles
-            if (l2[0] == l2[1]) and l2[0] in teams and not aotd_dict[a_id]['eter_gold'][l2[0]]:
-
-                bypass = True
-                girl = l2[0].capitalize()
-
-            else:
-                bypass = False
-
-                # pick a random png
-                p = Path(loc)
-                ops = list(p.glob('*.png'))
-                s = random.choice(ops)
-                girl = s.name.split('.')[0].capitalize()
-
-            # handle golden
-            if (girl.lower() in eter_gold and girl.lower() == l2[0] and girl.lower() == l2[1]) or bypass:
-                gold = True
-                s = f'./aotd/gold/{girl.lower()}.png'
-
         else:
             # 1/20 chance to get sg
-            if odds <= .001:
+            if odds <= .0001:
                 cursed = True
                 loc = './aotd/cursed'
             elif odds <= .05: # or self.pwd=="sidegirl":
@@ -336,42 +338,58 @@ class Spinner(discord.ui.View):
             else:
                 loc = './aotd/eter'
 
-           # get teams roles
-            teams = []
-            for r in self.ctx.author.roles:
-                if r.id in teams_ids.keys():
-                    teams += [teams_ids[r.id]]
+        # get teams roles
+        teams = []
+        for r in self.ctx.author.roles:
+            if r.id in teams_ids.keys():
+                teams += [teams_ids[r.id]]
 
-            # Make 3rd in a row a guarantee for team roles
-            if (l2[0] == l2[1]) and l2[0] in teams and not aotd_dict[a_id]['eter_gold'][l2[0]]:
-                bypass = True
-                girl = l2[0].capitalize()
+        # Make 3rd in a row a guarantee for team roles
+        if (l2[0] == l2[1]) and l2[0] in teams and not aotd_dict[a_id]['eter_gold'][l2[0]]:
 
-            else:
-                bypass = False
-                
-                # pick a random png
-                p = Path(loc)
-                ops = list(p.glob('*.png'))
-                s = random.choice(ops)
-                girl = s.name.split('.')[0].capitalize()
+            bypass = True
+            girl = l2[0].capitalize()
 
-            # handle golden
-            if (girl.lower() in eter_gold and girl.lower() == l2[0] and girl.lower() == l2[1]) or bypass:
-                gold = True
-                s = f'./aotd/gold/{girl.lower()}.png'           
+        else:
+            bypass = False
+
+            # pick a random png
+            p = Path(loc)
+            ops = list(p.glob('*.png'))
+            s = random.choice(ops)
+            girl = s.name.split('.')[0].capitalize()
+
+        # handle golden
+        if (girl.lower() in eter_gold and girl.lower() == l2[0] and girl.lower() == l2[1]) or bypass:
+            gold = True
+            s = f'./aotd/gold/{girl.lower()}.png'        
 
         # save results
         if gold:
-            aotd_dict[a_id]['eter_gold'][girl.lower()] = True
+            if aotd_dict[a_id]['eter_gold'][girl.lower()]:
+                new = False
+            else:
+                new = True
+                aotd_dict[a_id]['eter_gold'][girl.lower()] = True
         elif girl.lower() in eter:
-            aotd_dict[a_id]['eter'][girl.lower()] = True
+            if aotd_dict[a_id]['eter'][girl.lower()]:
+                new = False
+            else:
+                new = True
+                aotd_dict[a_id]['eter'][girl.lower()] = True
         elif girl.lower() in secret:
-            aotd_dict[a_id]['secret'][girl.lower()] = True
+            if aotd_dict[a_id]['secret'][girl.lower()]:
+                new = False
+            else:
+                new = True
+                aotd_dict[a_id]['secret'][girl.lower()] = True
         elif girl.lower() in oialt:
-            aotd_dict[a_id]['oialt'][girl.lower()] = True
+            if aotd_dict[a_id]['oialt'][girl.lower()]:
+                new = False
+            else:
+                new = True
+                aotd_dict[a_id]['oialt'][girl.lower()] = True
         
-
         if not cursed:
             aotd_dict[a_id]['last_two'] = [girl.lower(), l2[0]]
             save_aotd(interaction.guild_id, aotd_dict)
@@ -382,7 +400,10 @@ class Spinner(discord.ui.View):
 
         # set the image
         img = discord.File(s, filename="scene.png")
-        embed = discord.Embed(title=f"Your ass of the day is {girl}! Lucky you!")
+        if new:
+            embed = discord.Embed(title=f"Your ass of the day is {girl}! Lucky you! (New Ass)")
+        else:
+            embed = discord.Embed(title=f"Your ass of the day is {girl}! Lucky you! (Already Collected)")
         embed.set_image(url="attachment://scene.png")
 
         m = ""
@@ -403,7 +424,7 @@ class Spinner(discord.ui.View):
                 m += "Collect all the Main Girl asses to unlock more secrets!\n"
         elif all(aotd_dict[a_id]['oialt'].values()) and not oialt_done:
             m += "You have collected all OiaLT LI asses! Congrats!\n"
-            m += "You have completed the main part of the game, congrats on winning the Ass Collector role!"
+            m += "You have completed the main part of the game, congrats on winning the Butt Collector role!\n"
             m += "Try and collect the Golden Asses (get 3 in a row of the Eternum LIs) if you want to overachieve!\n"
             await add_ass_role(self.ctx, a_id)
 

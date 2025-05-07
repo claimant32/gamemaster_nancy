@@ -38,6 +38,14 @@ async def spam_channel(ctx):
     else:
         return True
 
+async def lobby_channel(ctx):
+    # check if in the lobby channel
+    if ctx.channel.id not in [LOBBY_CHANNEL, TEST_CHANNEL]:
+        await ctx.send(f"You can only do that in <#{LOBBY_CHANNEL}>")
+        return False
+    else:
+        return True
+
 #######################
 ### Disk operations ###
 #######################

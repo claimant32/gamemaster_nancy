@@ -412,8 +412,10 @@ class MISC(commands.Cog):
 
         if ctx.author.id == WINGY_USER_ID:
             ops = list(p.glob('*penny*'))
+        elif ctx.author.id == GOOMBA_USER_ID:
+            ops = list(p.glob('*glorpva*'))
         else:
-            ops = list(p.glob('*.png'))
+            ops = list(p.glob('[!g]*.png'))
         s = random.choice(ops)
 
         # set the image
@@ -470,6 +472,26 @@ class MISC(commands.Cog):
             reply = True
 
         await send_image_embed(ctx, "./images/", "confused.gif", text="You are making me dizzy...", reply=True)
+    
+    @commands.command(description='Goodmorning custom react')
+    @commands.check(lobby_channel)
+    async def gm(self, ctx):
+        p = Path('./images')
+        ops = list(p.glob('gm*'))
+        s = random.choice(ops)
+        filename = s.__str__().split("\\")[-1]
+        await ctx.send(file=discord.File(f"./images/{filename}"))
+        #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
+
+    @commands.command(description='Goodnight custom react')
+    @commands.check(lobby_channel)
+    async def gn(self, ctx):
+        p = Path('./images')
+        ops = list(p.glob('gn*'))
+        s = random.choice(ops)
+        filename = s.__str__().split("\\")[-1]
+        await ctx.send(file=discord.File(f"./images/{filename}"))
+        #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
 
     @commands.command(description='Use for suspect behavior')
     @commands.cooldown(1, 30, commands.BucketType.user)
