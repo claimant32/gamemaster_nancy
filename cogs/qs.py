@@ -552,18 +552,18 @@ def create_question_game_embed(game, game_over=False, is_cancelled=False, guess=
         answer = question_dict["answer"]
 
         if answer == True:
-            answer = "Yes <a:nova_nod_hyper:1269380092740632668>"
+            answer = "Yes <a:8_NovaNodHyper:972495321139671100>"
         elif answer == False:
             if guess and index+1 == nq and not is_cancelled:
-                answer = "<a:who:1270446936457085059> (No)"
+                answer = "<a:who:1373854639975563316> (No)"
             else:
-                answer = "No <a:novanope:1251738053639405730>"
+                answer = "No <a:NovaNoppers:1251738053639405730>"
         elif answer.lower() in YES_ANSWERS:
-            answer = f"{answer} <a:nova_nod_hyper:1269380092740632668>"
+            answer = f"{answer} <a:8_NovaNodHyper:972495321139671100>"
         elif answer.lower() in NO_ANSWERS:
-            answer = f"{answer} <a:novanope:1251738053639405730>"
+            answer = f"{answer} <a:NovaNoppers:1251738053639405730>"
         elif answer.lower() == 'unknown':
-            answer = "Unknown <:novaidk:1270853670010880021>"
+            answer = "Unknown <:NovaShrug:1270853670010880021>"
 
         embed.add_field(name=name, value=answer, inline=False)
 
