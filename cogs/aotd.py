@@ -200,6 +200,8 @@ class AOTD(commands.Cog):
             next_time = int(time.time() + error.retry_after)
             await ctx.send(f"You've already claimed your ass today! Try again <t:{next_time}:R>", embed=embed, file=img)
         else:
+            aotd.reset_cooldown(ctx)
+            await ctx.send("An unexpected error occured, I have reset your cooldown, try again!")
             print(error)
 
     async def cog_command_error(self, ctx, error):
