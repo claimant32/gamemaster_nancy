@@ -392,8 +392,12 @@ class MISC(commands.Cog):
 
         # pick a random png
         p = Path('./hugs')
-
-        ops = list(p.glob('*.png'))
+        if ctx.author.id == WINGY_USER_ID:
+            ops = list(p.glob('*penny*'))
+        elif ctx.author.id == GOOMBA_USER_ID:
+            ops = list(p.glob('*glorpva*'))
+        else:
+            ops = list(p.glob('*.png'))
         s = random.choice(ops)
 
         # set the image

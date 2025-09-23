@@ -91,6 +91,20 @@ class HOTSWAP(commands.Cog):
 
     @commands.command()
     @commands.check(can_do)
+    async def send_cog(self, ctx, cog_name):
+        file_name = cog_name + '.py'
+        if file_name not in os.listdir('./cogs'):
+            await ctx.send(f"{cog_name} is not a valid cog")
+            return
+
+        active_loc = f"./cogs/{file_name}"
+        active_cog = discord.File(active_loc)
+    
+        # Send the file
+        await ctx.send(file=active_cog, content="Current cog file attached!")
+
+    @commands.command()
+    @commands.check(can_do)
     async def add_cog(self, ctx):
         if len(ctx.message.attachments) != 1:
             await ctx.send("Please provide exactly one file")
