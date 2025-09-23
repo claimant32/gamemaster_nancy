@@ -12,7 +12,7 @@ from discord.ext import commands
 
 ### Local Imports ###
 from constants import *
-from utils import can_do
+from utils import can_do, spam_channel
 
 eter = ['alex', 'annie', 'dalia', 'luna', 'nancy', 'nova', 'penny']
 secret = ['calypso', 'eva', 'maat']
@@ -40,12 +40,9 @@ class AOTD(commands.Cog):
         print("aotd loaded")
     
     @commands.command()
+    @commands.check(spam_channel)
     @commands.cooldown(1, 72000, commands.BucketType.user)
     async def aotd(self, ctx, pwd=None):
-
-        if ctx.channel.id not in [779873459756335104, 1269074244814377041]:
-            await ctx.send("You can only do that in #bot-and-spam!")
-            return
 
         # set the image
         img = discord.File('./aotd/ass_of_the_day.gif', filename="aotd.gif")
@@ -54,6 +51,7 @@ class AOTD(commands.Cog):
 
         await ctx.send(embed=embed, file=img, view=Spinner(ctx, pwd))
 
+    @commands.check(spam_channel)
     @commands.command(aliases=["aotd_collections", "acollection", "acollections", "asscollection"])
     async def aotd_collection(self, ctx, guild_id=None, user_id=None):
         # Handle Guild, ignore if anybody else
