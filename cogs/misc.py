@@ -1,6 +1,7 @@
 ### General Imports ###
 import os
 import pytz
+import pickle
 import random
 import asyncio
 from datetime import datetime, timedelta
@@ -557,6 +558,32 @@ class MISC(commands.Cog):
 
         await ctx.send("Moshi moshi? A bug?! Ok I'll connect you.")
         await send_image_embed(ctx, "./images/", "moshi-moshi.png", f"Paging {canch.mention} and {claim.mention}", reply)
+
+    @commands.command(description="Fetch teams")
+    @commands.check(can_do)
+    async def getroles(self, ctx):
+
+        # Cari Teams channel
+        channel = self.bot.get_channel(767672366879735829)
+
+        # Roles message
+        message = await channel.fetch_message(924015289983713370)
+
+        # Role look up dict
+        results = {}
+        for r in message.reactions:
+            async for user in r.users():
+                if user.id not in results.keys():
+                    results[user.id] = [r.emoji.name.split('_')[1]]
+                else:
+                    results[user.id].append(r.emoji.name.split('_')[1])
+
+        with open('./roles.pkl', 'wb') as f:
+            pickle.dump(results, f)
+
+        os.rename('./roles.pkl', '../nancy_bot/roles.pkl')
+
+        await ctx.send("Roles data pickled")
 
     ### ERRORS ###
     # Let people know why they can't do things
