@@ -8,6 +8,7 @@ from pathlib import Path
 
 ### Discord Imports ###
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 ### Local Imports ###
@@ -39,21 +40,25 @@ class AOTD(commands.Cog):
         self.bot = bot
         print("aotd loaded")
     
-    @commands.command()
+    @commands.hybrid_command(description="Collect your Ass of the Day")
     @commands.check(spam_channel)
     @commands.cooldown(1, 72000, commands.BucketType.user)
-    async def aotd(self, ctx, pwd=None):
+    async def aotd(self, ctx):
 
         # set the image
         img = discord.File('./aotd/ass_of_the_day.gif', filename="aotd.gif")
         embed = discord.Embed(title=f"Spin the Wheel! Be blessed!")
         embed.set_image(url="attachment://aotd.gif")
 
-        await ctx.send(embed=embed, file=img, view=Spinner(ctx, pwd))
+        await ctx.send(embed=embed, file=img, view=Spinner(ctx))
 
     @commands.check(spam_channel)
-    @commands.command(aliases=["aotd_collections", "acollection", "acollections", "asscollection"])
-    async def aotd_collection(self, ctx, guild_id=None, user_id=None):
+    @commands.hybrid_command(description="Check on your AOTD progress", aliases=["aotd_collections", "acollection", "acollections", "asscollection"])
+    @app_commands.describe(
+        guild_id="[Admin only] Force Discord guild",
+        user_id="[Admin only] Force Discord user"
+    )
+    async def aotd_collection(self, ctx, guild_id: int | None=None, user_id: int | None=None):
         # Handle Guild, ignore if anybody else
         if guild_id and ctx.message.author.id in [CLAIMANT_USER_ID, CANCHEZ_USER_ID]:
             guild = int(guild_id)
@@ -279,9 +284,8 @@ async def remove_ass_role(ctx, user_id):
 
 class Spinner(discord.ui.View):
 
-    def __init__(self, ctx, pwd):
+    def __init__(self, ctx):
         self.ctx = ctx
-        self.pwd = pwd
         super().__init__()
 
     @discord.ui.button(label="Claim Dat Ass!", style=discord.ButtonStyle.green)

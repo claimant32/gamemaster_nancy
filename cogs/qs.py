@@ -5,6 +5,7 @@ from pathlib import Path
 
 ### Discord Imports ###
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 ### Local Imports ###
@@ -30,7 +31,7 @@ class QS(commands.Cog):
         self.bot = bot
         print("20qs loaded")
 
-    @commands.command(description="Rules for the question game")
+    @commands.hybrid_command(description="Rules for the question game")
     async def qrules(self, ctx):
         embed = discord.Embed(title="Questions Game Rules")
         embed.add_field(name="1)", value="The character you pick must either be named or have a line in the game", inline=False)
@@ -42,10 +43,18 @@ class QS(commands.Cog):
         embed.add_field(name="7)", value="Some characters don't have names but are fun to guess. In these cases, guess what the game calls them in their dialoge (Ex: 'Granny' from the phone call in 0.1)", inline=False)
         await ctx.send(embed=embed)
 
-    @commands.command(description="Start Questions game")
+    @commands.hybrid_command(description="Start Questions game")
     @commands.check(spam_channel)
     @commands.cooldown(10, 1200, type=commands.BucketType.user)
-    async def qstart(self, ctx, max_questions=DEFAULT_QUESTIONS, host='human'):
+    @app_commands.describe(
+        max_questions="How many questions to play",
+        host="Who should ask the questions?",
+    )
+    @app_commands.choices(host=[
+        app_commands.Choice(name="Myself", value="human"),
+        app_commands.Choice(name="The bot", value="bot"),
+    ])
+    async def qstart(self, ctx, max_questions: int = DEFAULT_QUESTIONS, host: str = 'human'):
         """Start Questions game if not started already by creating and saving json"""
 
         # block DM playing
@@ -104,8 +113,12 @@ class QS(commands.Cog):
         if host == 'bot':
             await self.q_nancy(ctx, question_game, question_game['questions'])
 
-    @commands.command(description="Stop 20 question game")
-    async def qstop(self, ctx, game_over=False, guess=False):
+    @commands.hybrid_command(description="Stop 20 question game")
+    @app_commands.describe(
+        game_over="Whether the person lost",
+        guess="Whether the person won",
+    )
+    async def qstop(self, ctx, game_over: bool = False, guess: bool = False):
         """Stop Questions game if running by clearing json"""
         question_game = load_question_game(ctx)
         if not question_game:
@@ -164,8 +177,9 @@ class QS(commands.Cog):
         else:
             await ctx.send("Only host or mods can stop the game!")
 
-    @commands.command(description="Submit a question")
-    async def q(self, ctx, q_option=None):
+    @commands.hybrid_command(description="Submit a question")
+    @app_commands.describe(q_option="Number of the question to ask")
+    async def q(self, ctx, q_option: int | None = None):
         """ Submit a question if don't have unanswered one already"""
         question_game = load_question_game(ctx)
         if not question_game:
@@ -192,12 +206,7 @@ class QS(commands.Cog):
                 await ctx.send("Please select a question option!")
                 return
 
-            # make sure integer
-            if not q_option.isnumeric():
-                await ctx.send(f"{q_option} is not a valid question. See all question with .qlist")
-
             # make sure question not asked already
-            q_option = int(q_option)
             if q_option in question_game['asked']:
                 await ctx.send(f"Question #{q_option} has already been asked!")
                 return
@@ -277,7 +286,7 @@ class QS(commands.Cog):
         save_question_game(ctx, question_game)
         await ctx.send(embed=embed)
 
-    @commands.command(description="List all bot questions")
+    @commands.hybrid_command(description="List all bot questions")
     async def qlist(self, ctx):
         data, characters = load_20q_characters()
         embed = discord.Embed(title="All available questions (Part 1)")
@@ -295,7 +304,7 @@ class QS(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(description="Shuffle questions available to be asked")
+    @commands.hybrid_command(description="Shuffle questions available to be asked")
     async def qshuffle(self, ctx):
         question_game = load_question_game(ctx)
 
@@ -304,7 +313,7 @@ class QS(commands.Cog):
 
         await self.q_nancy(ctx, question_game, question_game['questions'], True)
 
-    @commands.command(description="Answer a question")
+    @commands.hybrid_command(description="Answer a question")
     async def qa(self, ctx):
         """ Answer a question if have unanswered"""
         question_game = load_question_game(ctx)
@@ -346,7 +355,7 @@ class QS(commands.Cog):
 
             await ctx.send(embed=embed)
 
-    @commands.command(description="Show current state of Question game")
+    @commands.hybrid_command(description="Show current state of Question game")
     async def qs(self, ctx):
         """ Show current game status """
         question_game = load_question_game(ctx)
@@ -358,7 +367,7 @@ class QS(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(description="Discard last question")
+    @commands.hybrid_command(description="Discard last question")
     async def qdiscard(self, ctx):
         """ Discard last question """
         question_game = load_question_game(ctx)
@@ -382,7 +391,7 @@ class QS(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(description="Guess the character")
+    @commands.hybrid_command(description="Guess the character")
     async def guess(self, ctx):
         """ Submit a question if don't have unanswered one already"""
         question_game = load_question_game(ctx)
@@ -450,7 +459,7 @@ class QS(commands.Cog):
         embed = create_question_game_embed(question_game, guess=True)
         await ctx.send(embed=embed)
 
-    @commands.command(description="View your questions game stats")
+    @commands.hybrid_command(description="View your questions game stats")
     @commands.check(spam_channel)
     async def qstats(self, ctx):
 
@@ -481,7 +490,7 @@ class QS(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(description="View your questions game stats")
+    @commands.hybrid_command(description="View your questions game stats")
     @commands.check(spam_channel)
     async def qleader(self, ctx, stat='all'):
         # load all stats
