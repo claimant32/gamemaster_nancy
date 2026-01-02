@@ -394,11 +394,11 @@ class MISC(commands.Cog):
         # pick a random png
         p = Path('./hugs')
         if ctx.author.id == WINGY_USER_ID:
-            ops = list(p.glob('*penny*'))
+            ops = list(p.glob('*penelope*'))
         elif ctx.author.id == GOOMBA_USER_ID:
             ops = list(p.glob('*glorpva*'))
         else:
-            ops = list(p.glob('*.png'))
+            ops = list(p.glob('[!g]*.png'))
         s = random.choice(ops)
 
         # set the image
@@ -416,7 +416,7 @@ class MISC(commands.Cog):
         p = Path('./kisses')
 
         if ctx.author.id == WINGY_USER_ID:
-            ops = list(p.glob('*penny*'))
+            ops = list(p.glob('*penelope*'))
         elif ctx.author.id == GOOMBA_USER_ID:
             ops = list(p.glob('*glorpva*'))
         else:
@@ -572,16 +572,24 @@ class MISC(commands.Cog):
         # Role look up dict
         results = {}
         for r in message.reactions:
+
+            # filter out harem roles
+            name = r.emoji.name.split('_')[1]
+            print(name)
+            if name == 'EternumLogo':
+                continue
+            print(name)
+
             async for user in r.users():
                 if user.id not in results.keys():
-                    results[user.id] = [r.emoji.name.split('_')[1]]
+                    results[user.id] = [name]
                 else:
-                    results[user.id].append(r.emoji.name.split('_')[1])
+                    results[user.id].append(name)
 
         with open('./roles.pkl', 'wb') as f:
             pickle.dump(results, f)
 
-        os.rename('./roles.pkl', '../nancy_bot/roles.pkl')
+        os.replace('./roles.pkl', '../nancy_bot/roles.pkl')
 
         await ctx.send("Roles data pickled")
 
