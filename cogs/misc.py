@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 ### Discord Imports ###
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 ### Discord Imports ###
@@ -22,9 +23,17 @@ class MISC(commands.Cog):
         self.bot = bot
         print("misc loaded")
 
-    @commands.command(description='List command categories')
+    @commands.hybrid_command(description='List command categories')
     @commands.check(spam_channel)
-    async def cmd(self, ctx, cmdtype=None):
+    @app_commands.rename(cmdtype="category")
+    @app_commands.describe(cmdtype="Help category")
+    @app_commands.choices(cmdtype=[
+        app_commands.Choice(name="Interactions", value="interact"),
+        app_commands.Choice(name="Ass of the Day", value="aotd"),
+        app_commands.Choice(name="Games", value="games"),
+        app_commands.Choice(name="Question game", value="question"),
+    ])
+    async def cmd(self, ctx, cmdtype: str | None=None):
 
         if not cmdtype:
             # list each category of commands
@@ -57,7 +66,7 @@ class MISC(commands.Cog):
         else:
             await ctx.send(f"'{cmdtype}' is not a valid subcommand")
 
-    @commands.command(description='List all mod commands')
+    @commands.hybrid_command(description='List all mod commands')
     @commands.check(spam_channel)
     async def cmdmod(self, ctx):
         embed = discord.Embed()
@@ -68,7 +77,7 @@ class MISC(commands.Cog):
 
         await ctx.send("Here are all the moderator commands", embed=embed)
 
-    @commands.command(description='List all interaction commands')
+    @commands.hybrid_command(description='List all interaction commands')
     @commands.check(spam_channel)
     async def cmdinteract(self, ctx):
         embed = discord.Embed()
@@ -93,7 +102,7 @@ class MISC(commands.Cog):
 
         await ctx.send("Here are all the interaction commands", embed=embed)
 
-    @commands.command(description='List all aotd commands')
+    @commands.hybrid_command(description='List all aotd commands')
     @commands.check(spam_channel)
     async def cmdaotd(self, ctx):
         embed = discord.Embed()
@@ -102,7 +111,7 @@ class MISC(commands.Cog):
        
         await ctx.send("Here are all the Ass of the Day commands", embed=embed)
         
-    @commands.command(description='List all game commands')
+    @commands.hybrid_command(description='List all game commands')
     @commands.check(spam_channel)
     async def cmdgames(self, ctx):
         embed = discord.Embed()
@@ -111,7 +120,7 @@ class MISC(commands.Cog):
 
         await ctx.send("Here are all the game commands", embed=embed)
 
-    @commands.command(description="List Question game commands")
+    @commands.hybrid_command(description="List Question game commands")
     @commands.check(spam_channel)
     async def cmdquestion(self, ctx):
         embed = discord.Embed()
@@ -205,12 +214,24 @@ class MISC(commands.Cog):
     async def reload(self, ctx, ext):
         await self.bot.reload_extension(f"cogs.{ext}")
         await ctx.send(f"{ext} reloaded")
+    
+    @commands.command(description="Sync ALL commands")
+    @commands.check(can_do)
+    async def synctree(self, ctx, guild_id: int | None = None):
+        guild = None
+        if guild_id:
+            guild = discord.Object(id=guild_id)
+            self.bot.tree.copy_global_to(guild=guild)
+        
+        tree = await self.bot.tree.sync(guild=guild)
+
+        await ctx.send(f"{len(tree)} commands synchronized!")
 
     ############################
     ### Interaction Commands ###
     ############################
 
-    @commands.command(description='Attempt to ravage bathrobe Nancy as she deserves')
+    @commands.hybrid_command(description='Attempt to ravage bathrobe Nancy as she deserves')
     @commands.cooldown(1, 30, commands.BucketType.user)
     @commands.check(spam_channel)
     async def ravage(self, ctx):
@@ -239,33 +260,35 @@ class MISC(commands.Cog):
         else:
             await send_image_embed(ctx, "./images/", "punch.png", text="Back off creep!")
 
-    @commands.command(description='For uncooperative server users')
+    @commands.hybrid_command(description='For uncooperative server users')
     @commands.cooldown(1, 30, commands.BucketType.user)
     @commands.check(spam_channel)
-    async def crucify(self, ctx):
+    @app_commands.describe(user="Who you want to crucify")
+    async def crucify(self, ctx, user: discord.User | None = None):
         # meme from Eternum, @someone to crucify them like the leader of the ERE
 
         # need to mention exactly one person
-        if len(ctx.message.mentions) == 0:
+        if not user:
             await ctx.send('Who should we crucify today?')
-        elif len(ctx.message.mentions) == 1:
-            await send_image_embed(ctx, "./images/", "crucify.png", text=f"Maximo, crucify {ctx.message.mentions[0].display_name}!")
+        elif len(ctx.message.mentions) <= 1:
+            await send_image_embed(ctx, "./images/", "crucify.png", text=f"Maximo, crucify {user.display_name}!")
         else:
             await ctx.send('I can only crucify one person at a time')
 
-    @commands.command(description='For extremely uncooperative server users part 2')
+    @commands.hybrid_command(description='For extremely uncooperative server users part 2')
     @commands.cooldown(1, 30, commands.BucketType.user)
     @commands.check(spam_channel)
-    async def spankhard(self, ctx):
+    @app_commands.describe(user="Who you want to spank")
+    async def spankhard(self, ctx, user: discord.User | None = None):
         # meme from Eternum / Cari's server, @someone to spank them like Dalia!
 
-        if len(ctx.message.mentions) == 0:
+        if not user:
             await ctx.send('Who deserves a spanking?')
 
-        elif len(ctx.message.mentions) == 1:
+        elif len(ctx.message.mentions) <= 1:
 
             # catch people trying to spank Nancy
-            if ctx.message.mentions[0] == self.bot.user:
+            if user == self.bot.user:
                 await send_image_embed(ctx, "./images/", "naughty.gif", text=f"{ctx.message.author.display_name} you've been naughty for trying to spank Mommy, time out for you!")
                 return
 
@@ -275,21 +298,22 @@ class MISC(commands.Cog):
                 return
             else:
                 n = random.choice([2,4])
-                await send_image_embed(ctx, "./images/", f"spank{n}.gif", text=f"{ctx.message.author.display_name} spanked {ctx.message.mentions[0].display_name} even harder (and they liked it)!")
+                await send_image_embed(ctx, "./images/", f"spank{n}.gif", text=f"{ctx.message.author.display_name} spanked {user.display_name} even harder (and they liked it)!")
         else:
             await ctx.send('I can only spank one person at a time')
 
-    @commands.command(description='Just pats between friends')
+    @commands.hybrid_command(description='Just pats between friends')
     @commands.cooldown(1, 30, commands.BucketType.user)
-    async def pats(self, ctx):
+    @app_commands.describe(user="Who you want to pat")
+    async def pats(self, ctx, user: discord.User | None = None):
         # meme from Eternum, @someone to pat them like Nova!
 
         # only pat exactly one person
-        if len(ctx.message.mentions) == 0:
+        if not user:
             await ctx.send('Who do you want to pat? Tag them with this command.')
-        elif len(ctx.message.mentions) == 1:
+        elif len(ctx.message.mentions) <= 1:
             # unique react for patting Nancy
-            if ctx.message.mentions[0] == self.bot.user:
+            if user == self.bot.user:
 
                 if await nancy_likes_you(ctx):
                     await ctx.send("I'm a grown woman I don't need pats!")
@@ -303,41 +327,43 @@ class MISC(commands.Cog):
                     return
 
             n = random.randint(1,3)
-            await send_image_embed(ctx, "./images/", f"pats{n}.gif", text=f"{ctx.message.author.display_name} pat {ctx.message.mentions[0].display_name} on the head!")
+            await send_image_embed(ctx, "./images/", f"pats{n}.gif", text=f"{ctx.message.author.display_name} pat {user.display_name} on the head!")
         else:
             await ctx.send('One at a time for pats please!')
 
-    @commands.command(description="Put someone on Nancy's good side")
+    @commands.hybrid_command(description="Put someone on Nancy's good side")
     @commands.check(nancy_likes_you)
-    async def like(self, ctx):
+    @app_commands.describe(user="Who has been a good boy/girl?")
+    async def like(self, ctx, user: discord.User | None = None):
         like_list = load_likes(ctx)
 
-        if len(ctx.message.mentions) == 0:
+        if not user:
             await ctx.send('Who do you want to me to like?')
-        elif len(ctx.message.mentions) == 1:
-            if ctx.message.mentions[0].id in like_list:
-                await ctx.send(f"I already like {ctx.message.mentions[0].display_name}!")
+        elif len(ctx.message.mentions) <= 1:
+            if user.id in like_list:
+                await ctx.send(f"I already like {user.display_name}!")
             else:
-                await ctx.send(f"Oooh I definitely like {ctx.message.mentions[0].display_name} now, they are a cutie!")
-                like_list.append(ctx.message.mentions[0].id)
+                await ctx.send(f"Oooh I definitely like {user.display_name} now, they are a cutie!")
+                like_list.append(user.id)
                 save_likes(ctx, like_list)
         else:
             await ctx.send('I can only like one new person at a time')
 
-    @commands.command(description="Put someone on Nancy's bad side")
+    @commands.hybrid_command(description="Put someone on Nancy's bad side")
     @commands.check(nancy_likes_you)
-    async def unlike(self, ctx):
+    @app_commands.describe(user="Who has been naughty?")
+    async def unlike(self, ctx, user: discord.User | None = None):
         like_list = load_likes(ctx)
         if '.unlike' not in ctx.message.content:
             like_list.remove(ctx.message.author.id)
             await ctx.send(f"{ctx.message.author.display_name} you are a creep, leave me alone!")
             save_likes(ctx, like_list)
-        elif len(ctx.message.mentions) == 0:
+        elif not user:
             await ctx.send("Who should I not like?")
-        elif len(ctx.message.mentions) == 1:
-            if ctx.message.mentions[0].id in like_list:
-                like_list.remove(ctx.message.mentions[0].id)
-                await ctx.send(f"{ctx.message.mentions[0].display_name} is a creep, leave me alone!")
+        elif len(ctx.message.mentions) <= 1:
+            if user.id in like_list:
+                like_list.remove(user.id)
+                await ctx.send(f"{user.display_name} is a creep, leave me alone!")
                 save_likes(ctx, like_list)
             else:
                 await ctx.send(f"Can't unlike someone I don't already like silly")
@@ -345,9 +371,23 @@ class MISC(commands.Cog):
         else:
             await ctx.send('I can only unlike one person at a time')
 
-    @commands.command(description='Wish your friends Happy Birthday')
+    @commands.hybrid_command(description='Wish your friends Happy Birthday')
     @commands.cooldown(1, 30, commands.BucketType.user)
-    async def bday(self, ctx, user=None, girl=None):
+    @app_commands.describe(
+        user="The birthday boy/girl",
+        girl="The girl that should wish them happy bday"
+    )
+    @app_commands.choices(girl=[
+        app_commands.Choice(name="Alex", value="alex"),
+        app_commands.Choice(name="Annie", value="annie"),
+        app_commands.Choice(name="Calypso", value="calypso"),
+        app_commands.Choice(name="Dalia", value="dalia"),
+        app_commands.Choice(name="Luna", value="luna"),
+        app_commands.Choice(name="Nancy", value="nancy"),
+        app_commands.Choice(name="Nova", value="nova"),
+        app_commands.Choice(name="Penelope", value="penny"),
+    ])
+    async def bday(self, ctx, user: discord.User | None = None, girl: str | None = None):
         # One of the Eternum girls wishes you a happy birthday
         ops = os.listdir('./birthdays')
         if not girl:
@@ -365,12 +405,12 @@ class MISC(commands.Cog):
         # need to mention exactly one person
         if user == None:
             await ctx.send("Who's birthday is it? Tag them in this command")
-        elif len(ctx.message.mentions) == 1:
-            await send_image_embed(ctx, "./birthdays/", choice, text=f"Happy Birthday {ctx.message.mentions[0].display_name}! I got you a little something!")
+        elif len(ctx.message.mentions) <= 1:
+            await send_image_embed(ctx, "./birthdays/", choice, text=f"Happy Birthday {user.display_name}! I got you a little something!")
         else:
             await ctx.send('Only one birthday wish at a time!')
 
-    @commands.command(description='Random tongue render')
+    @commands.hybrid_command(description='Random tongue render')
     @commands.cooldown(1, 30, commands.BucketType.user)
     @commands.check(spam_channel)
     async def tongue(self, ctx):
@@ -387,7 +427,7 @@ class MISC(commands.Cog):
 
         await ctx.send(f"Nyahh", file=img, embed=embed)
 
-    @commands.command(description='Random hug render')
+    @commands.hybrid_command(description='Random hug render')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def hugs(self, ctx):
 
@@ -408,7 +448,7 @@ class MISC(commands.Cog):
 
         await ctx.send(f"Come here!", file=img, embed=embed)
 
-    @commands.command(description='Random kiss render')
+    @commands.hybrid_command(description='Random kiss render')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def kisses(self, ctx):
 
@@ -430,7 +470,7 @@ class MISC(commands.Cog):
 
         await ctx.send(f"Come here!", file=img, embed=embed)
 
-    @commands.command(description='Yes custom react')
+    @commands.hybrid_command(description='Yes custom react')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def yes(self, ctx):
         
@@ -442,7 +482,7 @@ class MISC(commands.Cog):
 
         await send_image_embed(ctx, "./images/", "yes.gif", "", reply)
 
-    @commands.command(description='No custom react')
+    @commands.hybrid_command(description='No custom react')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def no(self, ctx):
         
@@ -454,7 +494,7 @@ class MISC(commands.Cog):
 
         await send_image_embed(ctx, "./images/", "no.gif", "", reply)
 
-    @commands.command(description='Begone custom react')
+    @commands.hybrid_command(description='Begone custom react')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def begone(self, ctx):
         
@@ -466,7 +506,7 @@ class MISC(commands.Cog):
 
         await send_image_embed(ctx, "./images/", "begone.png", text="BEGONE THOT!", reply=True)
 
-    @commands.command(description='Confused custom react')
+    @commands.hybrid_command(description='Confused custom react')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def confused(self, ctx):
 
@@ -478,7 +518,7 @@ class MISC(commands.Cog):
 
         await send_image_embed(ctx, "./images/", "confused.gif", text="You are making me dizzy...", reply=True)
     
-    @commands.command(description='Goodmorning custom react')
+    @commands.hybrid_command(description='Goodmorning custom react')
     @commands.check(lobby_channel)
     async def gm(self, ctx):
         p = Path('./images')
@@ -488,7 +528,7 @@ class MISC(commands.Cog):
         await ctx.send(file=discord.File(f"./images/{filename}"))
         #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
 
-    @commands.command(description='Goodnight custom react')
+    @commands.hybrid_command(description='Goodnight custom react')
     @commands.check(lobby_channel)
     async def gn(self, ctx):
         p = Path('./images')
@@ -498,14 +538,14 @@ class MISC(commands.Cog):
         await ctx.send(file=discord.File(f"./images/{filename}"))
         #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
 
-    @commands.command(description='Use for suspect behavior')
+    @commands.hybrid_command(description='Use for suspect behavior')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def suss(self, ctx):
         n = random.randint(1,6)
 
         await send_image_embed(ctx, "./images/", f"suss{n}.gif")
 
-    @commands.command(description='Curse evil comments')
+    @commands.hybrid_command(description='Curse evil comments')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def curse(self, ctx):
 
@@ -517,7 +557,7 @@ class MISC(commands.Cog):
 
         await send_image_embed(ctx, "./images/", "curse.png", "", reply)
 
-    @commands.command(description='Call out brutish behavior')
+    @commands.hybrid_command(description='Call out brutish behavior')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def uncivil(self, ctx):
 
@@ -529,7 +569,7 @@ class MISC(commands.Cog):
 
         await send_image_embed(ctx, "./images/", "uncivilized.png", "Loutish. Mannerless. UNCIVILIZED", reply)
 
-    @commands.command(description='Express disgust')
+    @commands.hybrid_command(description='Express disgust')
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def ew(self, ctx):
 
@@ -541,7 +581,7 @@ class MISC(commands.Cog):
 
         await send_image_embed(ctx, "./images/", "ew.gif", "", reply)
 
-    @commands.command(description='Report a bug to bot creators')
+    @commands.hybrid_command(description='Report a bug to bot creators')
     @commands.cooldown(1, 30, commands.BucketType.user)
     @commands.check(spam_channel)
     async def report(self, ctx):
