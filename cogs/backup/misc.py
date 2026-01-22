@@ -1,6 +1,7 @@
 ### General Imports ###
 import os
 import pytz
+import pickle
 import random
 import asyncio
 from datetime import datetime, timedelta
@@ -392,8 +393,12 @@ class MISC(commands.Cog):
 
         # pick a random png
         p = Path('./hugs')
-
-        ops = list(p.glob('*.png'))
+        if ctx.author.id == WINGY_USER_ID:
+            ops = list(p.glob('*penelope*'))
+        elif ctx.author.id == GOOMBA_USER_ID:
+            ops = list(p.glob('*glorpva*'))
+        else:
+            ops = list(p.glob('[!g]*.png'))
         s = random.choice(ops)
 
         # set the image
@@ -411,9 +416,11 @@ class MISC(commands.Cog):
         p = Path('./kisses')
 
         if ctx.author.id == WINGY_USER_ID:
-            ops = list(p.glob('*penny*'))
+            ops = list(p.glob('*penelope*'))
+        elif ctx.author.id == GOOMBA_USER_ID:
+            ops = list(p.glob('*glorpva*'))
         else:
-            ops = list(p.glob('*.png'))
+            ops = list(p.glob('[!g]*.png'))
         s = random.choice(ops)
 
         # set the image
@@ -470,6 +477,26 @@ class MISC(commands.Cog):
             reply = True
 
         await send_image_embed(ctx, "./images/", "confused.gif", text="You are making me dizzy...", reply=True)
+    
+    @commands.command(description='Goodmorning custom react')
+    @commands.check(lobby_channel)
+    async def gm(self, ctx):
+        p = Path('./images')
+        ops = list(p.glob('gm*'))
+        s = random.choice(ops)
+        filename = s.__str__().split("\\")[-1]
+        await ctx.send(file=discord.File(f"./images/{filename}"))
+        #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
+
+    @commands.command(description='Goodnight custom react')
+    @commands.check(lobby_channel)
+    async def gn(self, ctx):
+        p = Path('./images')
+        ops = list(p.glob('gn*'))
+        s = random.choice(ops)
+        filename = s.__str__().split("\\")[-1]
+        await ctx.send(file=discord.File(f"./images/{filename}"))
+        #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
 
     @commands.command(description='Use for suspect behavior')
     @commands.cooldown(1, 30, commands.BucketType.user)
@@ -532,6 +559,113 @@ class MISC(commands.Cog):
         await ctx.send("Moshi moshi? A bug?! Ok I'll connect you.")
         await send_image_embed(ctx, "./images/", "moshi-moshi.png", f"Paging {canch.mention} and {claim.mention}", reply)
 
+    @commands.command(description="Fetch teams")
+    @commands.check(can_do)
+    async def getroles(self, ctx):
+
+        # Cari Teams channel
+        channel = self.bot.get_channel(767672366879735829)
+
+        # Roles message
+        message = await channel.fetch_message(924015289983713370)
+
+        # Role look up dict
+        results = {}
+        for r in message.reactions:
+
+            # filter out harem roles
+            name = r.emoji.name.split('_')[1]
+            print(name)
+            if name == 'EternumLogo':
+                continue
+            print(name)
+
+            async for user in r.users():
+                if user.id not in results.keys():
+                    results[user.id] = [name]
+                else:
+                    results[user.id].append(name)
+
+        with open('./roles.pkl', 'wb') as f:
+            pickle.dump(results, f)
+
+        os.replace('./roles.pkl', '../nancy_bot/roles.pkl')
+
+        await ctx.send("Roles data pickled")
+
+    @commands.command(description="Fetch Spoiler messages")
+    @commands.check(can_do)
+    async def getmessages(self, ctx, message_id: int):
+        # Cari Spoilers channel
+        channel = self.bot.get_channel(963049877984673843)
+
+        # Test channel
+        # channel = self.bot.get_channel(1448415035801210992)
+
+        first_message = await channel.fetch_message(message_id)
+
+        await ctx.send(f"Collecting messages from {channel.jump_url} after {first_message.jump_url}...")
+
+        start_time = datetime.now()
+        messages = []
+
+        async for message in channel.history(limit=10_000, after=first_message, oldest_first=True):
+            author = message.author
+            reactions = []
+            for reaction in message.reactions:
+                if isinstance(reaction.emoji, str):
+                    reaction_data = {
+                        "unicode_emoji": reaction,
+                    }
+                else:
+                    reaction_data = {
+                        "emoji_id": reaction.emoji.id,
+                        "emoji_name": reaction.emoji.name,
+                        "emoji_url": reaction.emoji.url,
+                    }
+                reaction_data["reaction_amount"] = reaction.count
+                reactions += [reaction_data]
+            stickers = []
+            for sticker in message.stickers:
+                sticker_data = {
+                    "sticker_id": sticker.id,
+                    "sticker_name": sticker.name,
+                    "sticker_url": sticker.url,
+                }
+                stickers += [sticker_data]
+            message_data = {
+                "message_id": message.id,
+                "message_date": message.created_at.isoformat(),
+                "message_reactions": reactions,
+                "message_stickers": stickers,
+                "message_content_length": len(message.content),
+                "message_url": message.jump_url,
+                "author_id": author.id,
+                "author_display_name": author.display_name,
+                "author_nickname": author.name,
+                "author_avatar_url": author.display_avatar.url,
+            } 
+            messages += [message_data]
+
+        print(messages[0])
+
+        end_time = datetime.now()
+
+        if not Path("./messages").exists():
+            Path("./messages").mkdir()
+        file_path = f"./messages/spoiler_messages_{message_id}.pkl"
+        with open(file_path, mode="wb") as f:
+            pickle.dump(messages, f)
+
+        file = discord.File(file_path)
+
+        results_message = f"Saved {len(messages)} messages. "
+        results_message += f"Took {round(end_time.timestamp() - start_time.timestamp())}s. "
+        results_message += f"Last message: {messages[-1]['message_url']}, {messages[-1]['message_id']}"
+        await ctx.send(results_message)
+        await ctx.send(file=file, content="Results")
+        
+
     ### ERRORS ###
     # Let people know why they can't do things
 
@@ -557,6 +691,10 @@ class MISC(commands.Cog):
             await ctx.send(f"This command is on cooldown, try again in {round(error.retry_after)}s")
         else:
             print(error)
+
+    @getmessages.error
+    async def getmessages_error(self, ctx, error):
+        await ctx.send(error)
 
 async def setup(bot):
     await bot.add_cog(MISC(bot))

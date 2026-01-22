@@ -593,6 +593,79 @@ class MISC(commands.Cog):
 
         await ctx.send("Roles data pickled")
 
+    @commands.command(description="Fetch Spoiler messages")
+    @commands.check(can_do)
+    async def getmessages(self, ctx, message_id: int):
+        # Cari Spoilers channel
+        channel = self.bot.get_channel(963049877984673843)
+
+        # Test channel
+        # channel = self.bot.get_channel(1448415035801210992)
+
+        first_message = await channel.fetch_message(message_id)
+
+        await ctx.send(f"Collecting messages from {channel.jump_url} after {first_message.jump_url}...")
+
+        start_time = datetime.now()
+        messages = []
+
+        async for message in channel.history(limit=10_000, after=first_message, oldest_first=True):
+            author = message.author
+            reactions = []
+            for reaction in message.reactions:
+                if isinstance(reaction.emoji, str):
+                    reaction_data = {
+                        "unicode_emoji": reaction.emoji,
+                    }
+                else:
+                    reaction_data = {
+                        "emoji_id": reaction.emoji.id,
+                        "emoji_name": reaction.emoji.name,
+                        "emoji_url": reaction.emoji.url,
+                    }
+                reaction_data["reaction_amount"] = reaction.count
+                reactions += [reaction_data]
+            stickers = []
+            for sticker in message.stickers:
+                sticker_data = {
+                    "sticker_id": sticker.id,
+                    "sticker_name": sticker.name,
+                    "sticker_url": sticker.url,
+                }
+                stickers += [sticker_data]
+            message_data = {
+                "message_id": message.id,
+                "message_date": message.created_at.isoformat(),
+                "message_reactions": reactions,
+                "message_stickers": stickers,
+                "message_content_length": len(message.content),
+                "message_url": message.jump_url,
+                "author_id": author.id,
+                "author_display_name": author.display_name,
+                "author_nickname": author.name,
+                "author_avatar_url": author.display_avatar.url,
+            } 
+            messages += [message_data]
+
+        print(messages[0])
+
+        end_time = datetime.now()
+
+        if not Path("./messages").exists():
+            Path("./messages").mkdir()
+        file_path = f"./messages/spoiler_messages_{message_id}.pkl"
+        with open(file_path, mode="wb") as f:
+            pickle.dump(messages, f)
+
+        file = discord.File(file_path)
+
+        results_message = f"Saved {len(messages)} messages. "
+        results_message += f"Took {round(end_time.timestamp() - start_time.timestamp())}s. "
+        results_message += f"Last message: {messages[-1]['message_url']}, {messages[-1]['message_id']}"
+        await ctx.send(results_message)
+        await ctx.send(file=file, content="Results")
+        
+
     ### ERRORS ###
     # Let people know why they can't do things
 
@@ -618,6 +691,10 @@ class MISC(commands.Cog):
             await ctx.send(f"This command is on cooldown, try again in {round(error.retry_after)}s")
         else:
             print(error)
+
+    @getmessages.error
+    async def getmessages_error(self, ctx, error):
+        await ctx.send(error)
 
 async def setup(bot):
     await bot.add_cog(MISC(bot))
