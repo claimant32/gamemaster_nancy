@@ -280,18 +280,16 @@ class QS(commands.Cog):
     @commands.command(description="List all bot questions")
     async def qlist(self, ctx):
         data, characters = load_20q_characters()
-        embed = discord.Embed(title="All available questions (Part 1)")
+        loop = 1
+        embed = discord.Embed(title=f"All available questions (Part {loop})")
         for i in range(1, max(data.keys())+1):
             embed.add_field(name=f"Question #{data[i]['id']}", value=data[i]['question'])
 
-            if i == 25:
-                break
-
-        await ctx.send(embed=embed)
-
-        embed = discord.Embed(title="All available questions (Part 2)")
-        for j in range(i, max(data.keys())+1):
-            embed.add_field(name=f"Question #{data[j]['id']}", value=data[j]['question'])
+            # send every on 25th entry
+            if i % 25 == 0:
+                await ctx.send(embed=embed)
+                loop += 1
+                embed = discord.Embed(title=f"All available questions (Part {loop})")
 
         await ctx.send(embed=embed)
 
@@ -555,7 +553,7 @@ def create_question_game_embed(game, game_over=False, is_cancelled=False, guess=
             answer = "Yes <a:8_NovaNodHyper:972495321139671100>"
         elif answer == False:
             if guess and index+1 == nq and not is_cancelled:
-                answer = "<a:who:1373854639975563316> (No)"
+                answer = "<a:Who:1373854639975563316> (No)"
             else:
                 answer = "No <a:NovaNoppers:1251738053639405730>"
         elif answer.lower() in YES_ANSWERS:
