@@ -604,9 +604,7 @@ class MISC(commands.Cog):
         p = Path('./images')
         ops = list(p.glob('gm*'))
         s = random.choice(ops)
-        filename = s.__str__().split("\\")[-1]
-        await ctx.send(file=discord.File(f"./images/{filename}"))
-        #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
+        await ctx.send(file=discord.File(f"./images/{s.name}"))
 
     @commands.command(description='Goodnight custom react')
     @commands.check(lobby_channel)
@@ -614,9 +612,7 @@ class MISC(commands.Cog):
         p = Path('./images')
         ops = list(p.glob('gn*'))
         s = random.choice(ops)
-        filename = s.__str__().split("\\")[-1]
-        await ctx.send(file=discord.File(f"./images/{filename}"))
-        #await send_image_embed(ctx, "./images/", s.__str__().split("\\")[-1])
+        await ctx.send(file=discord.File(f"./images/{s.name}"))
 
     @commands.command(description='Use for suspect behavior')
     @commands.cooldown(1, 30, commands.BucketType.user)

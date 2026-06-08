@@ -314,7 +314,7 @@ class GAMES(commands.Cog):
         # Set out the rules
         special_chars = [' ', "'", '-', '.', '1', '2', '3', '4', 
                          '5', '6', '7', '8', '9', ':']
-        spaces = ['\_' if l not in special_chars else l for l in word]
+        spaces = ['\\_' if l not in special_chars else l for l in word]
 
         img = discord.File(f"./alleyman/part0.png", filename=filename)
         embed = discord.Embed(title="Alleyman game started!")
@@ -373,7 +373,7 @@ class GAMES(commands.Cog):
                         spaces[ma] = word[ma]
 
                     # keep going if not all letters found
-                    if '\_' not in spaces:
+                    if '\\_' not in spaces:
                         win = True
 
                 elif not win:
