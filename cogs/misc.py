@@ -170,6 +170,18 @@ class MISC(commands.Cog):
         else:
             await ctx.send('I can only remove one mod at a time')
 
+    @commands.command(description="Show mod list")
+    async def showmods(self, ctx):
+        mod_list = load_mods(ctx)
+        embed = discord.Embed(title="Nancy mods")
+        users = []
+        for user_id in mod_list:
+            user = self.bot.get_user(user_id)
+            users += [f"<@{user_id}>{" " + user.display_name if user else ""}"]
+        users = "\n".join(users)
+        embed.add_field(name="Users:", value=users)
+        await ctx.send(embed=embed)
+
     @commands.command(description="Have Nancy talk")
     @commands.check(can_do)
     async def speak(self, ctx):
@@ -743,7 +755,13 @@ class MISC(commands.Cog):
             await ctx.send(partial_emoji.url)
         else:
             await ctx.send("Downloading...")
-            emoji_bytes = await partial_emoji.read()
+            try:
+                emoji_bytes = await partial_emoji.read()
+            except discord.HTTPException as e:
+                await ctx.send("Emoji is broken, deal with it")
+                await ctx.send(e)
+                await ctx.send(partial_emoji.url)
+                return
             created_emoji = await ctx.guild.create_custom_emoji(name=partial_emoji.name, image=emoji_bytes, reason=f"Yoinked by {ctx.author.display_name}")
 
             await ctx.send(f"Yoinked an emoji {created_emoji.name}")
@@ -904,6 +922,24 @@ class MISC(commands.Cog):
             await ctx.send("You are not authorized to use this command, please contact a mod")
         else:
             print(error)
+
+    @yoink.error
+    async def yoink_errors(self, ctx, error):
+        if isinstance(error, discord.NotFound):
+            await ctx.send("Emoji was deleted!")
+            await ctx.send(error)
+        elif isinstance(error, discord.Forbidden):
+            await ctx.send("Bot lacks permissions to add emoji!")
+            await ctx.send(error)
+        elif isinstance(error, discord.HTTPException):
+            await ctx.send("HTTP Exception occured!")
+            await ctx.send(error)
+        elif isinstance(error, discord.DiscordException):
+            await ctx.send("Can't download emoji asset!")
+            await ctx.send(error)
+        else:
+            await ctx.send("Random error when trying to yoink!")
+            await ctx.send(error)
 
     async def cog_command_error(self, ctx, error):
         if ctx.command:

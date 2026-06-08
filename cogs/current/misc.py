@@ -1,8 +1,11 @@
 ### General Imports ###
+import re
 import os
+import time
 import pytz
 import pickle
 import random
+import typing
 import asyncio
 from datetime import datetime, timedelta
 
@@ -108,6 +111,7 @@ class MISC(commands.Cog):
         embed = discord.Embed()
         embed.add_field(name = ".betteracro", value = "Play acro, but without dumb letters")
         embed.add_field(name = ".alleyman", value = "Play hangman with more categories!")
+        embed.add_field(name = ".potd", value = "Get your daily Penny horoscope")
 
         await ctx.send("Here are all the game commands", embed=embed)
 
@@ -165,6 +169,18 @@ class MISC(commands.Cog):
                 await ctx.send(f"Can't remove someone who isn't a mod already silly")
         else:
             await ctx.send('I can only remove one mod at a time')
+
+    @commands.command(description="Show mod list")
+    async def showmods(self, ctx):
+        mod_list = load_mods(ctx)
+        embed = discord.Embed(title="Nancy mods")
+        users = []
+        for user_id in mod_list:
+            user = self.bot.get_user(user_id)
+            users += [f"<@{user_id}>{" " + user.display_name if user else ""}"]
+        users = "\n".join(users)
+        embed.add_field(name="Users:", value=users)
+        await ctx.send(embed=embed)
 
     @commands.command(description="Have Nancy talk")
     @commands.check(can_do)
@@ -389,16 +405,71 @@ class MISC(commands.Cog):
 
     @commands.command(description='Random hug render')
     @commands.cooldown(1, 30, commands.BucketType.user)
+    async def test_role(self, ctx):
+        await ctx.send(ctx.author.roles)
+
+    @commands.command(description='Random hug render')
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def hugs(self, ctx):
 
-        # pick a random png
+        # all teams
+        team_roles = ['nancy', 'dalia', 'penelope', 'annie', 'alex', 'nova', 'luna', 'harem', 'calypso']
+
+        # hug directory
         p = Path('./hugs')
-        if ctx.author.id == WINGY_USER_ID:
-            ops = list(p.glob('*penelope*'))
-        elif ctx.author.id == GOOMBA_USER_ID:
+
+        # get the user's team roles
+        ops = []
+        teams = []
+        for role in ctx.author.roles:
+            second_word = role.name.split(' ')[-1].lower()
+            
+            # skip all non-team roles
+            if not second_word in team_roles:
+                continue
+
+            teams.append(second_word)
+            ops += list(p.glob(f"*{second_word}*"))
+
+        # get role for hug target to match hug if it exists
+        t_ops = []
+        t_teams = []
+        if ctx.message.mentions:
+
+            for role in ctx.message.mentions[0].roles:
+                
+                second_word = role.name.split(' ')[-1].lower()
+            
+                # skip all non-team roles
+                if not second_word in team_roles:
+                    continue
+
+                t_teams.append(second_word)
+                t_ops += list(p.glob(f"*{second_word}*"))
+
+        # find all valid hug combos
+        c_ops = []
+        for t1 in teams:
+            for t2 in t_teams:
+                c_ops += list(p.glob(f"*{t1.lower()}_{t2.lower()}*"))
+                c_ops += list(p.glob(f"*{t2.lower()}_{t1.lower()}*"))
+
+        # decide the right filter to use, combo first, giver next, 
+        # receiver last, random otherwise
+        if c_ops:
+            ops = c_ops
+        elif t_ops and not ops:
+            ops = t_ops
+        elif not ops:
+            ops = list(p.glob('*.png'))
+
+        ops = [f for f in ops if 'glorpva' not in f.name]
+
+        # goomba handling
+        if ctx.author.id == GOOMBA_USER_ID:
             ops = list(p.glob('*glorpva*'))
-        else:
-            ops = list(p.glob('[!g]*.png'))
+
+        # randomly select from options
         s = random.choice(ops)
 
         # set the image
@@ -412,15 +483,64 @@ class MISC(commands.Cog):
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def kisses(self, ctx):
 
-        # pick a random png
+        # all teams
+        team_roles = ['nancy', 'dalia', 'penelope', 'annie', 'alex', 'nova', 'luna', 'harem', 'calypso']
+
+        # hug directory
         p = Path('./kisses')
 
-        if ctx.author.id == WINGY_USER_ID:
-            ops = list(p.glob('*penelope*'))
-        elif ctx.author.id == GOOMBA_USER_ID:
+        # get the user's team roles
+        ops = []
+        teams = []
+        for role in ctx.author.roles:
+            second_word = role.name.split(' ')[-1].lower()
+            
+            # skip all non-team roles
+            if not second_word in team_roles:
+                continue
+
+            teams.append(second_word)
+            ops += list(p.glob(f"*{second_word}*"))
+
+        # get role for kiss target to match kiss if it exists
+        t_ops = []
+        t_teams = []
+        if ctx.message.mentions:
+
+            for role in ctx.message.mentions[0].roles:
+                
+                second_word = role.name.split(' ')[-1].lower()
+            
+                # skip all non-team roles
+                if not second_word in team_roles:
+                    continue
+
+                t_teams.append(second_word)
+                t_ops += list(p.glob(f"*{second_word}*"))
+
+        # find all valid hug combos
+        c_ops = []
+        for t1 in teams:
+            for t2 in t_teams:
+                c_ops += list(p.glob(f"*{t1.lower()}_{t2.lower()}*"))
+                c_ops += list(p.glob(f"*{t2.lower()}_{t1.lower()}*"))
+
+        # decide the right filter to use, combo first, giver next, 
+        # receiver last, random otherwise
+        if c_ops:
+            ops = c_ops
+        elif t_ops and not ops:
+            ops = t_ops
+        elif not ops:
+            ops = list(p.glob('*.png'))
+
+        ops = [f for f in ops if 'glorpva' not in f.name]
+
+        # goomba handling
+        if ctx.author.id == GOOMBA_USER_ID:
             ops = list(p.glob('*glorpva*'))
-        else:
-            ops = list(p.glob('[!g]*.png'))
+
+        # randomly select from options
         s = random.choice(ops)
 
         # set the image
@@ -559,6 +679,94 @@ class MISC(commands.Cog):
         await ctx.send("Moshi moshi? A bug?! Ok I'll connect you.")
         await send_image_embed(ctx, "./images/", "moshi-moshi.png", f"Paging {canch.mention} and {claim.mention}", reply)
 
+    @commands.command(description='Find the best Eternum girl')
+    @commands.cooldown(1, 72000, commands.BucketType.user)
+    @commands.check(spam_channel)
+    async def bestgirl(self, ctx):
+        odds = random.random()
+        if odds >= .99:
+            bg = "Cari"
+        else:
+            bg = random.choice(['Nancy', 'Penny', 'Dalia', 'Annie', 'Nova', 'Alex', 'Luna', 'Calypso'])
+        await ctx.send(f"{bg} is the GOAT")
+
+    @commands.command(description="Yoink an emoji to the server or get URL of a sticker")
+    async def yoink(self, ctx, index: typing.Optional[int]=None, method: typing.Literal["url", "add"] = "url"):
+        # Yoink an emoji or a sticker to a server
+
+        reference = ctx.message.reference
+        if not reference:
+            await ctx.send("Reply to a message with an emoji or a sticker you want to yoink!")
+            return
+
+        message = reference.resolved
+        if not message or type(message) is discord.DeletedReferencedMessage:
+            print("Error resolving reference message to yoink!")
+            return
+        
+        stickers = message.stickers
+        # If message has stickers, send URL of the first one (technically the only one)
+        if stickers:
+            sticker_item = stickers[0]
+            sticker = await sticker_item.fetch()
+            await ctx.send(sticker.url)
+            return
+
+        content = message.content
+        if not content:
+            return
+        
+        # Find all emojis in the message
+        emojis = re.findall(EMOJI_REGEX, content)
+
+        if not emojis:
+            await ctx.send("No emoji found!")
+            return
+        elif not index:
+            if len(emojis) > 1:
+                await ctx.send("Multiple emoji found, specify which one you want to yoink with index `.yoink N`")
+                return
+            else:
+                index = 1
+        elif index and index > len(emojis) or index == 0:
+            await ctx.send(f"Incorrect index!")
+            return
+        
+        emoji_str = emojis[index - 1]
+        # Create partial emoji from <a:name:id> string
+        partial_emoji = discord.PartialEmoji.from_str(emoji_str)
+        # Add connection to allow .read()
+        partial_emoji = discord.PartialEmoji.with_state(self.bot._connection, name=partial_emoji.name, animated=partial_emoji.animated, id=partial_emoji.id)
+
+        # Check if emoji is already on the server (dumdum protection)
+        if partial_emoji.id in [e.id for e in ctx.guild.emojis]:
+            await ctx.send(f"Emoji is already on this server!")
+            guild_emoji = ctx.guild.get_emoji(partial_emoji.id)
+            await ctx.send(f"{guild_emoji}")
+            return
+        
+        # Revert to "url" if not a mod
+        if method == "add" and not await can_do(ctx):
+            await ctx.send("Only mods can add emoji! Sending a link instead")
+            await ctx.send(partial_emoji.url)
+            return
+        
+        if method == "url":
+            await ctx.send(partial_emoji.url)
+        else:
+            await ctx.send("Downloading...")
+            try:
+                emoji_bytes = await partial_emoji.read()
+            except discord.HTTPException as e:
+                await ctx.send("Emoji is broken, deal with it")
+                await ctx.send(e)
+                await ctx.send(partial_emoji.url)
+                return
+            created_emoji = await ctx.guild.create_custom_emoji(name=partial_emoji.name, image=emoji_bytes, reason=f"Yoinked by {ctx.author.display_name}")
+
+            await ctx.send(f"Yoinked an emoji {created_emoji.name}")
+            await ctx.send(f"{created_emoji}")
+
     @commands.command(description="Fetch teams")
     @commands.check(can_do)
     async def getroles(self, ctx):
@@ -574,11 +782,12 @@ class MISC(commands.Cog):
         for r in message.reactions:
 
             # filter out harem roles
-            name = r.emoji.name.split('_')[1]
-            print(name)
-            if name == 'EternumLogo':
+            if 'Calypso' in r.emoji.name:
+                name = 'Calypso'
+            elif 'Eternum' in r.emoji.name:
                 continue
-            print(name)
+            else:
+                name = r.emoji.name.split('_')[1]
 
             async for user in r.users():
                 if user.id not in results.keys():
@@ -664,7 +873,35 @@ class MISC(commands.Cog):
         results_message += f"Last message: {messages[-1]['message_url']}, {messages[-1]['message_id']}"
         await ctx.send(results_message)
         await ctx.send(file=file, content="Results")
-        
+     
+    @commands.command(description="Get all members with a role")
+    async def withrole(self, ctx, role_id):
+        role = ctx.guild.get_role(int(role_id))
+        if isinstance(role, discord.Role):
+
+            embed_list = []
+            for cnt, member in enumerate(role.members):
+                if cnt == 0:
+                    embed = discord.Embed(title=f"{role.name} ({len(role.members)})")
+                    embed.add_field(name=f"{member.display_name}", value=member.id)
+                elif len(embed.fields) == 24:
+                    embed_list.append(embed)
+                    embed = discord.Embed(title=f"{role.name} ({len(role.members)})")
+                    embed.add_field(name=f"{member.display_name}", value=member.id)
+                else:
+                    embed.add_field(name=f"{member.display_name}", value=member.id)
+            embed_list.append(embed)
+
+            # add page footer
+            for i, e in enumerate(embed_list):
+                e.set_footer(text=f"{i+1}/{len(embed_list)}")
+
+            view = PaginatorView(embed_list)
+            message = await ctx.send(embed=embed_list[0], view=view)
+            view.message = message
+
+        else:
+            await ctx.send("That's not a role silly")   
 
     ### ERRORS ###
     # Let people know why they can't do things
@@ -686,9 +923,36 @@ class MISC(commands.Cog):
         else:
             print(error)
 
+    @yoink.error
+    async def yoink_errors(self, ctx, error):
+        if isinstance(error, discord.NotFound):
+            await ctx.send("Emoji was deleted!")
+            await ctx.send(error)
+        elif isinstance(error, discord.Forbidden):
+            await ctx.send("Bot lacks permissions to add emoji!")
+            await ctx.send(error)
+        elif isinstance(error, discord.HTTPException):
+            await ctx.send("HTTP Exception occured!")
+            await ctx.send(error)
+        elif isinstance(error, discord.DiscordException):
+            await ctx.send("Can't download emoji asset!")
+            await ctx.send(error)
+        else:
+            await ctx.send("Random error when trying to yoink!")
+            await ctx.send(error)
+
     async def cog_command_error(self, ctx, error):
+        if ctx.command:
+            name = ctx.command.name 
+        else:
+            name = None
+
         if isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(f"This command is on cooldown, try again in {round(error.retry_after)}s")
+            if name in ['iq', 'bestgirl']:
+                next_time = int(time.time() + error.retry_after)
+                await ctx.send(f"You've already done that today! Try again <t:{next_time}:R>")
+            else:
+                await ctx.send(f"This command is on cooldown, try again in {round(error.retry_after)}s")
         else:
             print(error)
 
@@ -696,5 +960,42 @@ class MISC(commands.Cog):
     async def getmessages_error(self, ctx, error):
         await ctx.send(error)
 
+### Class for Paginated Embeds ###
+class PaginatorView(discord.ui.View):
+    def __init__(self, embeds: list[discord.Embed]):
+        super().__init__(timeout=180)
+        self.embeds = embeds
+        self.current_page = 0
+        self.update_buttons()
+
+    def update_buttons(self):
+        # Disable 'Previous' if we are on the first page
+        self.previous_button.disabled = (self.current_page == 0)
+        # Disable 'Next' if we are on the last page
+        self.next_button.disabled = (self.current_page == len(self.embeds) - 1)
+
+    async def update_message(self, interaction: discord.Interaction):
+        # Update the message with the current embed
+        self.update_buttons()
+        await interaction.response.edit_message(embed=self.embeds[self.current_page], view=self)
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.grey)
+    async def previous_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page > 0:
+            self.current_page -= 1
+        await self.update_message(interaction)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.grey)
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page < len(self.embeds) - 1:
+            self.current_page += 1
+        await self.update_message(interaction)
+
+    async def on_timeout(self):
+        # Disable buttons when the view times out
+        for item in self.children:
+            item.disabled = True
+        await self.message.edit(view=self)
+        
 async def setup(bot):
     await bot.add_cog(MISC(bot))
