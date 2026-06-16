@@ -17,7 +17,7 @@ from utils import *
 class POTD(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        print("aotd loaded")
+        print("potd loaded")
     
     @commands.command()
     @commands.check(spam_channel)
