@@ -12,7 +12,6 @@ secret
  __pycache__/
 
 # File types
-*.json
 *.pyc
 
 # Mac
