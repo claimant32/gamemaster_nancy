@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 ### Discord Imports ###
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 ### Local Imports ###
@@ -24,7 +25,7 @@ class GAMES(commands.Cog):
         self.bot = bot
         print("games loaded")
 
-    @commands.command(description="An acro that doesn't suck")
+    @commands.hybrid_command(description="An acro that doesn't suck")
     @commands.max_concurrency(1)
     async def betteracro(self, ctx):
         # acrophonbia from Nadeko, but removing the useless letters (z, q, x)
@@ -166,7 +167,7 @@ class GAMES(commands.Cog):
             embed.add_field(name = f"Winner: {win_person[0]} with {count} votes", value = f"Answer: {win_person[1]}")
             await ctx.send(embed=embed)
 
-    @commands.command(description="Two truths and a lie")
+    @commands.hybrid_command(description="Two truths and a lie")
     async def truth(self, ctx):
         # Two truths and a lie, classic kids game. One person tells two truths
         # and one lie. Everyone else votes and tries to figure out the lie.
@@ -285,9 +286,15 @@ class GAMES(commands.Cog):
                             value = f"Actual Lie: {lie}")
             await ctx.send(embed=embed)
 
-    @commands.command(description="Hangman with more categories")
+    @commands.hybrid_command(description="Hangman with more categories")
     @commands.max_concurrency(1)
-    async def alleyman(self, ctx, category=None):
+    @app_commands.describe(category="The category for the word")
+    @app_commands.choices(category=[
+        app_commands.Choice(name="Video games", value="videogames"),
+        app_commands.Choice(name="Eternum", value="eternum"),
+        app_commands.Choice(name="Countries", value="countries"),
+    ])
+    async def alleyman(self, ctx, category: str | None=None):
         # Like Nadeko's hangman, but with new categories
         
         # block DM playing
